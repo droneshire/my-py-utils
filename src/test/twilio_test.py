@@ -4,9 +4,9 @@ import typing as T
 import unittest
 
 import dotenv
-
-from util import log
 from util.twilio_util import TwilioUtil
+
+from . import log
 
 
 class TwilioUtilStub(TwilioUtil):

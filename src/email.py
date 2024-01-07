@@ -3,7 +3,7 @@ import typing as T
 
 import yagmail
 
-from util import log
+from . import log
 
 
 class Email(T.TypedDict):

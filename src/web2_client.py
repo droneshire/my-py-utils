@@ -3,7 +3,7 @@ import typing as T
 
 import requests
 
-from util import log, wait
+from . import log, wait
 
 MY_IP_URL = "http://icanhazip.com/"
 

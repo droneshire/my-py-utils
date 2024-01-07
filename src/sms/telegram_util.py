@@ -5,10 +5,7 @@ import typing as T
 
 import telegram
 
-from util import log
-
-
-
+from . import log
 
 
 class TelegramUtil:
@@ -74,9 +71,7 @@ class TelegramUtil:
                 try:
                     return json.load(infile).get(title, None)
                 except (json.JSONDecodeError, KeyError):
-                    log.print_fail(
-                        "TelegramUtil: get_chat_id: failed to get chat id from cache"
-                    )
+                    log.print_fail("TelegramUtil: get_chat_id: failed to get chat id from cache")
 
         return None
 

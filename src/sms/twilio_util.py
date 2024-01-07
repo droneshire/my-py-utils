@@ -5,7 +5,7 @@ import typing as T
 import pytz
 from twilio.rest import Client
 
-from util import log
+from . import log
 
 
 class TwilioUtil:
@@ -40,10 +40,7 @@ class TwilioUtil:
         return time.hour * 60 + time.minute
 
     def set_ignore_time_window(self, to_number: str, ignore: bool) -> None:
-        if (
-            to_number in self.ignore_time_window
-            and self.ignore_time_window[to_number] != ignore
-        ):
+        if to_number in self.ignore_time_window and self.ignore_time_window[to_number] != ignore:
             log.print_bright("Setting ignore_time_window to {}", ignore)
         self.ignore_time_window[to_number] = ignore
 
@@ -98,16 +95,12 @@ class TwilioUtil:
 
             if self.verbose:
                 log.print_normal(f"Time in UTC: {now.strftime('%H:%M:%S')}")
-                log.print_normal(
-                    f"Time in {timezone}: {converted_to_tz.strftime('%H:%M:%S')}"
-                )
+                log.print_normal(f"Time in {timezone}: {converted_to_tz.strftime('%H:%M:%S')}")
 
             now_minutes = self._get_minutes_from_time(converted_to_tz)
 
             is_within_window = now_minutes >= start_time and now_minutes <= end_time
-            should_send = is_within_window or self.ignore_time_window.get(
-                to_number, True
-            )
+            should_send = is_within_window or self.ignore_time_window.get(to_number, True)
 
             if not should_send:
                 log.print_ok_blue_arrow(
