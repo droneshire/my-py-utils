@@ -4,11 +4,15 @@ required = []
 with open("requirements.txt", encoding="utf-8") as infile:
     required = infile.read().splitlines()
 
+long_description = ""
+with open("README.md", encoding="utf-8") as infile:
+    long_description = infile.read()
+
 setup(
     name="ryutils",
     version="1.0.0",
     description="A collection of utilities for Python",
-    long_description=open("README.md").read(),
+    long_description=long_description,
     long_description_content_type="text/markdown",
     author="Ross Yeager",
     author_email="ryeager12@email.com",
