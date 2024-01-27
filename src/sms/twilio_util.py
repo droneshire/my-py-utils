@@ -3,9 +3,8 @@ import time
 import typing as T
 
 import pytz
+import log
 from twilio.rest import Client
-
-from . import log
 
 
 class TwilioUtil:

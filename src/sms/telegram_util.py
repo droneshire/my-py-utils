@@ -1,11 +1,12 @@
 import asyncio
 import functools
 import json
+import os
 import typing as T
 
 import telegram
-
 from . import log
+from . import async_utils
 
 
 class TelegramUtil:
@@ -21,7 +22,7 @@ class TelegramUtil:
 
         return self._check_token()  # type: ignore[no-any-return]
 
-    @force_sync
+    @async_utils.force_sync
     async def _check_token(self) -> bool:
         async with self.bot:
             try:
@@ -40,7 +41,7 @@ class TelegramUtil:
 
         return self._get_channel_chats()  # type: ignore[no-any-return]
 
-    @force_sync
+    @async_utils.force_sync
     async def _get_channel_chats(self) -> T.List[telegram.Chat]:
         chats: T.List[telegram.Chat] = []
         async with self.bot:
@@ -64,12 +65,12 @@ class TelegramUtil:
             if chat.title == title:
                 with open(self.chat_id_cache, "w") as outfile:
                     json.dump({title: chat.id}, outfile)
-                return chat.id
+                return int(chat.id)
 
         if self.chat_id_cache and os.path.exists(self.chat_id_cache):
             with open(self.chat_id_cache, "r") as infile:
                 try:
-                    return json.load(infile).get(title, None)
+                    return int(json.load(infile).get(title, None))
                 except (json.JSONDecodeError, KeyError):
                     log.print_fail("TelegramUtil: get_chat_id: failed to get chat id from cache")
 
@@ -81,7 +82,7 @@ class TelegramUtil:
             return
         self._send_message(chat_id, message)  # type: ignore[no-any-return]
 
-    @force_sync
+    @async_utils.force_sync
     async def _send_message(self, chat_id: str, message: str) -> None:
         async with self.bot:
             await self.bot.send_message(chat_id=chat_id, text=message)

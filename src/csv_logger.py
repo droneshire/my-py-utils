@@ -6,7 +6,7 @@ import json
 import os
 import typing as T
 
-from . import log
+import log
 
 
 class CsvLogger:

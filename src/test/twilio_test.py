@@ -4,9 +4,8 @@ import typing as T
 import unittest
 
 import dotenv
-from util.twilio_util import TwilioUtil
-
-from . import log
+import log
+from ryutils.sms.twilio_util import TwilioUtil
 
 
 class TwilioUtilStub(TwilioUtil):

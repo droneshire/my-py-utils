@@ -5,8 +5,7 @@ import os
 
 import dotenv
 from fp.fp import FreeProxy
-
-from . import log
+import log
 
 
 class Proxies:

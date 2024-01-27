@@ -2,8 +2,7 @@ import re
 import typing as T
 
 import yagmail
-
-from . import log
+import log
 
 
 class Email(T.TypedDict):
