@@ -1,4 +1,5 @@
 import typing as T
+import urllib.parse
 
 import requests
 
@@ -6,6 +7,17 @@ import log
 import wait
 
 MY_IP_URL = "http://icanhazip.com/"
+
+
+def create_websocket_url(base_url: str, params: T.Dict[str, T.Any]) -> str:
+    """
+    Constructs a WebSocket URL with given parameters.
+    """
+    url_parts = list(urllib.parse.urlparse(base_url))
+    query = dict(urllib.parse.parse_qsl(url_parts[4]))
+    query.update(params)
+    url_parts[4] = urllib.parse.urlencode(query)
+    return urllib.parse.urlunparse(url_parts)
 
 
 class Web2Client:
