@@ -1,6 +1,10 @@
 import typing as T
 
 
+def get_typeddict_keys(typeddict_type: T.Type) -> T.Set[str]:
+    return set(get_type_hints(typeddict_type))
+
+
 def check_dict_keys_recursive(
     dict1: T.Dict[T.Any, T.Any], dict2: T.Dict[T.Any, T.Any]
 ) -> T.List[T.Any]:
