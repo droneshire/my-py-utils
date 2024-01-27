@@ -212,7 +212,7 @@ print_fail = make_formatter_printer(Colors.FAIL.value, log_level=logging.CRITICA
 print_fail_arrow = make_formatter_printer(
     Colors.FAIL.value, prefix=Prefixes.ARROW.value, log_level=logging.CRITICAL
 )
-print_bold = make_formatter_printer(Colors.BOLD.value, log_level=logging.ERROR)
+print_bold = make_formatter_printer(Colors.BOLD.value, log_level=logging.CRITICAL)
 print_normal = make_formatter_printer(Colors.ENDC.value, log_level=logging.DEBUG)
 print_normal_arrow = make_formatter_printer(
     Colors.ENDC.value, prefix=Prefixes.ARROW.value, log_level=logging.DEBUG
