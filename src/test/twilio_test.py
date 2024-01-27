@@ -3,9 +3,8 @@ import os
 import typing as T
 import unittest
 
-import dotenv
 import log
-from ryutils.sms.twilio_util import TwilioUtil
+from sms.twilio_util import TwilioUtil
 
 
 class TwilioUtilStub(TwilioUtil):
@@ -47,11 +46,7 @@ class TwilioTest(unittest.TestCase):
     def setUp(self) -> None:
         self.twilio_stub = TwilioUtilStub()
 
-        dotenv.load_dotenv(".env")
-
     def tearDown(self) -> None:
-        dotenv.load_dotenv(".env")
-
         self.twilio_stub = None
 
 
