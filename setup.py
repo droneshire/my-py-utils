@@ -8,10 +8,8 @@ setup(
     name="ryutils",
     version="1.0.0",
     description="A collection of utilities for Python",
-    long_description=(
-        "Random assortment of various utilities for Python"
-        "that I have put together over the years"
-    ),
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
     author="Ross Yeager",
     author_email="ryeager12@email.com",
     packages=find_packages(),
