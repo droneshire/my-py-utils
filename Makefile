@@ -37,7 +37,9 @@ test:
 
 release:
 	@echo "\033[0;32mCreating version $(PYPY_VERSION)\033[0m"
-	git tag $(PYPY_VERSION)
-	gh create $(PYPY_VERSION) --notes "Release $(PYPY_VERSION)" --latest --verify-tag
+	git tag -l $(PYPY_VERSION) || git tag $(PYPY_VERSION)
+	git push origin $(PYPY_VERSION)
+	gh release create $(PYPY_VERSION) --notes "Release $(PYPY_VERSION)" --latest --verify-tag
+	@echo "\033[0;32mDONE!\033[0m"
 
 .PHONY: init install format check_format mypy pylint autopep8 isort lint test release
