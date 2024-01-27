@@ -5,7 +5,7 @@ import typing as T
 
 from fp.fp import FreeProxy
 
-import log
+from ryutils import log
 
 
 class Proxies:

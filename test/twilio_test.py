@@ -3,11 +3,12 @@ import os
 import typing as T
 import unittest
 
-from log import print_normal
-from sms.twilio_util import TwilioUtil
+from ryutils import log
+from ryutils.sms.twilio_util import TwilioUtil
 
 
 class TwilioUtilStub(TwilioUtil):
+    # pylint: disable=duplicate-code
     def __init__(self):
         super().__init__("", "", "", verbose=True, time_between_sms=0)
         self.num_sent = 0
@@ -24,7 +25,7 @@ class TwilioUtilStub(TwilioUtil):
         super().send_sms_if_in_window(to_number, content, self.now)
 
     def send_sms(self, to_number: str, content: str) -> None:
-        print_normal(f"Sending SMS to {to_number} with content:\n{content}")
+        log.print_normal(f"Sending SMS to {to_number} with content:\n{content}")
         self.num_sent += 1
         self.send_to = to_number
         self.content = content

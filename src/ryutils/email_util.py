@@ -3,7 +3,7 @@ import typing as T
 
 import yagmail
 
-import log
+from ryutils import log
 
 
 class Email(T.TypedDict):

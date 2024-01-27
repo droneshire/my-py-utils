@@ -6,7 +6,7 @@ import json
 import os
 import typing as T
 
-import log
+from ryutils import log
 
 
 class CsvLogger:

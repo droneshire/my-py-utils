@@ -1,7 +1,7 @@
 import typing as T
 import unittest
 
-from dict_util import (
+from ryutils.dict_util import (
     check_dict_keys_recursive,
     find_in_nested_dict,
     flatten_dict,

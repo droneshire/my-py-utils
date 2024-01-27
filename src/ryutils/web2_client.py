@@ -3,8 +3,7 @@ import urllib.parse
 
 import requests
 
-import log
-import wait
+from ryutils import log, wait
 
 MY_IP_URL = "http://icanhazip.com/"
 
