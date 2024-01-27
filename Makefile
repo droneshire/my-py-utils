@@ -37,6 +37,9 @@ test:
 
 release:
 	@echo "\033[0;32mCreating version $(PYPY_VERSION_ARG)\033[0m"
+	echo $(PYPY_VERSION_ARG) > VERSION
+	git add VERSION
+	git commit -m "Release $(PYPY_VERSION_ARG)"
 	git tag -l $(PYPY_VERSION_ARG) | grep -q $(PYPY_VERSION_ARG) || git tag $(PYPY_VERSION_ARG)
 	git push origin $(PYPY_VERSION_ARG)
 	gh release create $(PYPY_VERSION_ARG) --notes "Release $(PYPY_VERSION_ARG)" --latest --verify-tag

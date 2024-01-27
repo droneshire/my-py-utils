@@ -1,5 +1,4 @@
 from setuptools import find_packages, setup
-import git
 
 required = []
 with open("requirements.txt", encoding="utf-8") as infile:
@@ -9,8 +8,9 @@ LONG_DESCRIPTION = ""
 with open("README.md", encoding="utf-8") as infile:
     LONG_DESCRIPTION = infile.read()
 
-repo = git.Repo(search_parent_directories=True)
-latest_tag = repo.git.describe("--tags", "--abbrev=0")
+VERSION = "0.0.0"
+with open("VERSION", encoding="utf-8") as infile:
+    VERSION = infile.read().strip()
 
 setup(
     name="ryutils",
