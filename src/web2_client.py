@@ -1,8 +1,9 @@
-import time
 import typing as T
 
 import requests
-from util import log, wait
+
+import log
+import wait
 
 MY_IP_URL = "http://icanhazip.com/"
 
@@ -18,6 +19,7 @@ class Web2Client:
         self.dry_run = dry_run
         self.base_url = base_url
         self.rate_limit_delay = rate_limit_delay
+        self.verbose = verbose
 
         if dry_run:
             log.print_warn("Web2Client in dry run mode...")
@@ -27,8 +29,8 @@ class Web2Client:
     def _get_request(
         self,
         url: str,
-        headers: T.Dict[str, T.Any] = {},
-        params: T.Dict[str, T.Any] = {},
+        headers: T.Optional[T.Dict[str, T.Any]] = None,
+        params: T.Optional[T.Dict[str, T.Any]] = None,
         timeout: float = 5.0,
     ) -> T.Any:
         if self.rate_limit_delay > 0.0:
@@ -40,15 +42,15 @@ class Web2Client:
             ).json()
         except KeyboardInterrupt:
             raise
-        except:
+        except:  # pylint: disable=bare-except
             return {}
 
     def _post_request(
         self,
         url: str,
-        json_data: T.Dict[str, T.Any] = {},
-        headers: T.Dict[str, T.Any] = {},
-        params: T.Dict[str, T.Any] = {},
+        json_data: T.Optional[T.Dict[str, T.Any]] = None,
+        headers: T.Optional[T.Dict[str, T.Any]] = None,
+        params: T.Optional[T.Dict[str, T.Any]] = None,
         timeout: float = 5.0,
         delay: float = 5.0,
     ) -> T.Any:
@@ -69,7 +71,7 @@ class Web2Client:
             ).json()
         except KeyboardInterrupt:
             raise
-        except:
+        except:  # pylint: disable=bare-except
             log.format_fail(f"Failed to post to {url}")
             return {}
 
@@ -78,9 +80,9 @@ class Web2Client:
         url: str,
         file_path: str,
         data: T.Optional[str] = None,
-        headers: T.Dict[str, T.Any] = None,
-        params: T.Dict[str, T.Any] = None,
-        cookies: T.Dict[str, T.Any] = None,
+        headers: T.Optional[T.Dict[str, T.Any]] = None,
+        params: T.Optional[T.Dict[str, T.Any]] = None,
+        cookies: T.Optional[T.Dict[str, T.Any]] = None,
         timeout: float = 5.0,
     ) -> None:
         if self.dry_run:
@@ -102,8 +104,8 @@ class Web2Client:
                 with open(file_path, "wb") as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
-        except KeyboardInterrupt:
-            raise
-        except Exception as e:
-            log.format_fail(f"Failed to download {url} to {file_path}: {e}")
+        except KeyboardInterrupt as exc:
+            raise exc
+        except Exception as exc:  # pylint: disable=broad-except
+            log.format_fail(f"Failed to download {url} to {file_path}: {exc}")
             return

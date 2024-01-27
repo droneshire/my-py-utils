@@ -3,8 +3,9 @@ import time
 import typing as T
 
 import pytz
-import log
 from twilio.rest import Client
+
+import log
 
 
 class TwilioUtil:
@@ -35,8 +36,8 @@ class TwilioUtil:
 
         self.time_between_sms: int = time_between_sms
 
-    def _get_minutes_from_time(self, time: datetime.datetime) -> int:
-        return time.hour * 60 + time.minute
+    def _get_minutes_from_time(self, dt_time: datetime.datetime) -> int:
+        return dt_time.hour * 60 + dt_time.minute
 
     def set_ignore_time_window(self, to_number: str, ignore: bool) -> None:
         if to_number in self.ignore_time_window and self.ignore_time_window[to_number] != ignore:
@@ -48,7 +49,9 @@ class TwilioUtil:
     ) -> None:
         if self.verbose:
             log.print_bright(
-                f"Updating {timezone} send window for {to_number} to: {start_time // 60}:{start_time % 60:02} - {end_time // 60}:{end_time % 60:02} ({timezone})"
+                f"Updating {timezone} send window for {to_number} to: "
+                f"{start_time // 60}:{start_time % 60:02} - {end_time // 60}:{end_time % 60:02} "
+                f"({timezone})"
             )
         self.window[to_number] = {
             "start_time": start_time,
@@ -98,7 +101,7 @@ class TwilioUtil:
 
             now_minutes = self._get_minutes_from_time(converted_to_tz)
 
-            is_within_window = now_minutes >= start_time and now_minutes <= end_time
+            is_within_window = start_time <= now_minutes <= end_time
             should_send = is_within_window or self.ignore_time_window.get(to_number, True)
 
             if not should_send:

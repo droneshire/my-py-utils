@@ -28,17 +28,15 @@ class TwilioUtilStub(TwilioUtil):
         self.num_sent += 1
         self.send_to = to_number
         self.content = content
-        return
 
     def reset(self) -> None:
         self.num_sent = 0
         self.send_to = ""
         self.content = ""
-        return
 
 
 class TwilioTest(unittest.TestCase):
-    twilio_stub: TwilioUtilStub = None
+    twilio_stub: T.Optional[TwilioUtilStub] = None
     test_dir: str = os.path.join(os.path.dirname(__file__), "test_data")
     test_client_name = "test"
     test_num = "+1234567890"
