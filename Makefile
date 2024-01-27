@@ -1,5 +1,5 @@
 PYTHON ?= python3
-PY_PATH=$(PWD)/src
+PY_PATH=$(PWD)
 RUN_PY = PYTHONPATH=$(PY_PATH) $(PYTHON) -m
 BLACK_CMD = $(RUN_PY) black --line-length 100 .
 # NOTE: exclude any virtual environment subdirectories here

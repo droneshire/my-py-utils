@@ -20,7 +20,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Ross Yeager",
     author_email="ryeager12@email.com",
-    packages=find_packages(),
+    packages=find_packages(include=["ryutils"]),
     install_requires=required,
     classifiers=[
         "Development Status :: 5 - Production/Stable",
