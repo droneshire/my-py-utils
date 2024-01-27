@@ -14,7 +14,7 @@ with open("VERSION", encoding="utf-8") as infile:
 
 setup(
     name="ryutils",
-    version=latest_tag,
+    version=VERSION,
     description="A collection of utilities for Python",
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
