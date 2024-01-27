@@ -9,9 +9,6 @@
 name: Upload Python Package
 
 on:
-  workflow_run:
-    workflows: ["Python App"]
-    types: [completed]
   release:
     types: [published]
 
@@ -19,23 +16,9 @@ permissions:
   contents: read
 
 jobs:
-  check-python-app-workflow:
-    if: >
-      github.event.workflow_run != null &&
-      github.event.workflow_run.conclusion == 'success'
-    runs-on: ubuntu-latest
-    outputs:
-      success: ${{ steps.check-step.outputs.success }}
-    steps:
-      - id: check-step
-        run: echo "::set-output name=success::true"
-
   deploy:
-    needs: check-python-app-workflow
-    if: >
-      github.event_name == 'release' &&
-      needs.check-python-app-workflow.outputs.success == 'true'
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
