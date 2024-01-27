@@ -5,8 +5,8 @@ from ryutils.dict_util import (
     check_dict_keys_recursive,
     find_in_nested_dict,
     flatten_dict,
+    get_typeddict_keys,
     patch_missing_keys_recursive,
-    populate_typeddict_recursive,
     safe_get,
 )
 
@@ -19,6 +19,7 @@ class NestedTypedDict(T.TypedDict):
 class TestTypedDict(T.TypedDict):
     a: int
     b: str
+    c: dict
     nested: NestedTypedDict
 
 
@@ -29,25 +30,9 @@ class UtilTest(unittest.TestCase):
     def tearDown(self) -> None:
         pass
 
-    def test_populate_typeddict(self) -> None:
-        data = {
-            "a": 1,
-            "b": "2",
-            "nested": {
-                "c": 3,
-                "d": "4",
-            },
-        }
-
-        expected = TestTypedDict(
-            a=1,
-            b="2",
-            nested=NestedTypedDict(
-                c=3,
-                d="4",
-            ),
-        )
-        actual = populate_typeddict_recursive(data, TestTypedDict)
+    def test_get_typeddict_keys(self) -> None:
+        expected = {"a", "b", "c", "nested"}
+        actual = get_typeddict_keys(TestTypedDict)
         self.assertEqual(expected, actual)
 
     def test_check_dict_keys_recursive(self) -> None:

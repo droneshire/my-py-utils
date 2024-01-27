@@ -5,21 +5,6 @@ def get_typeddict_keys(typeddict_type: T.Type) -> T.Set[str]:
     return set(T.get_type_hints(typeddict_type))
 
 
-def populate_typeddict_recursive(data: T.Dict[str, T.Any], data_type: T.Any) -> T.Any:
-    required_keys = get_typeddict_keys(data_type)
-    keys = set(data.keys())
-
-    for key in required_keys:
-        if key not in keys:
-            return None
-
-        if isinstance(data[key], dict):
-            if populate_typeddict_recursive(data[key], data_type.__annotations__[key]) is None:
-                return None
-
-    return data_type(**data)
-
-
 def check_dict_keys_recursive(
     dict1: T.Dict[T.Any, T.Any], dict2: T.Dict[T.Any, T.Any]
 ) -> T.List[T.Any]:
