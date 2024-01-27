@@ -9,6 +9,9 @@
 name: Upload Python Package
 
 on:
+  workflow_run:
+    workflows: ["Python App"]
+    types: [completed]
   release:
     types: [published]
 
@@ -16,24 +19,37 @@ permissions:
   contents: read
 
 jobs:
-  deploy:
-
+  check-python-app-workflow:
+    if: >
+      github.event.workflow_run != null &&
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-
+    outputs:
+      success: ${{ steps.check-step.outputs.success }}
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.x'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install build
-    - name: Build package
-      run: python -m build
-    - name: Publish package
-      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
+      - id: check-step
+        run: echo "::set-output name=success::true"
+
+  deploy:
+    needs: check-python-app-workflow
+    if: >
+      github.event_name == 'release' &&
+      needs.check-python-app-workflow.outputs.success == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.x"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+      - name: Build package
+        run: python -m build
+      - name: Publish package
+        uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
