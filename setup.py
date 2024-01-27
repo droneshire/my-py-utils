@@ -4,9 +4,9 @@ required = []
 with open("requirements.txt", encoding="utf-8") as infile:
     required = infile.read().splitlines()
 
-long_description = ""
+LONG_DESCRIPTION = ""
 with open("README.md", encoding="utf-8") as infile:
-    long_description = infile.read()
+    LONG_DESCRIPTION = infile.read()
 
 setup(
     name="ryutils",
