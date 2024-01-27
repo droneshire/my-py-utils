@@ -29,7 +29,7 @@ class TwilioUtil:
         if verbose:
             log.print_bold("TwilioUtil initialized")
 
-        self.message_queue: T.Dict[str, T.List[Tuple[str, str]]] = {}
+        self.message_queue: T.Dict[str, T.List[T.Tuple[str, str]]] = {}
         self.window: T.Dict[str, T.Dict[str, T.Any]] = {}
         self.ignore_time_window: T.Dict[str, bool] = {}
 

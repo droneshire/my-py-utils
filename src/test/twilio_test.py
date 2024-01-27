@@ -3,8 +3,8 @@ import os
 import typing as T
 import unittest
 
-import log
-from sms.twilio_util import Twiliomake Util
+from log import print_normal
+from sms.twilio_util import TwilioUtil
 
 
 class TwilioUtilStub(TwilioUtil):
@@ -24,7 +24,7 @@ class TwilioUtilStub(TwilioUtil):
         super().send_sms_if_in_window(to_number, content, self.now)
 
     def send_sms(self, to_number: str, content: str) -> None:
-        log.print_normal(f"Sending SMS to {to_number} with content:\n{content}")
+        print_normal(f"Sending SMS to {to_number} with content:\n{content}")
         self.num_sent += 1
         self.send_to = to_number
         self.content = content
