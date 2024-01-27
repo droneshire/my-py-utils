@@ -8,6 +8,10 @@ setup(
     name="ryutils",
     version="1.0.0",
     description="A collection of utilities for Python",
+    long_description=(
+        "Random assortment of various utilities for Python"
+        "that I have put together over the years"
+    ),
     author="Ross Yeager",
     author_email="ryeager12@email.com",
     packages=find_packages(),
