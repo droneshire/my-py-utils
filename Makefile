@@ -35,4 +35,9 @@ lint: check_format mypy pylint
 test:
 	$(RUN_PY) unittest discover -s test -p *_test.py -v
 
-.PHONY: init install format check_format mypy pylint autopep8 isort lint test
+release:
+	@echo "\033[0;32mCreating version $(PYPY_VERSION)\033[0m"
+	git tag $(PYPY_VERSION)
+	gh create $(PYPY_VERSION) --notes "Release $(PYPY_VERSION)" --latest --verify-tag
+
+.PHONY: init install format check_format mypy pylint autopep8 isort lint test release
