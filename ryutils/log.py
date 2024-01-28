@@ -98,6 +98,19 @@ def is_color_supported() -> bool:
     return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
 
+def setup(log_dir: str, log_level: str, main_thread_name: str) -> None:
+    if not os.path.isdir(log_dir):
+        os.mkdir(log_dir)
+
+    log.setup_log(log_level, log_dir, main_thread_name)
+    logging.getLogger().addHandler(
+        log.MultiHandler(
+            log_dir,
+            ["ThreadPool", "MainThread"],
+        )
+    )
+
+
 def make_formatter_printer(
     color: str,
     log_level: int = logging.INFO,
