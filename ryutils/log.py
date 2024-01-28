@@ -94,16 +94,6 @@ def clean_log_dir(log_dir: str) -> None:
             print(f"Failed to delete {file_path}. Reason: {exception_obj}")
 
 
-def get_logging_dir(name: str, create_if_not_exist: bool = True) -> str:
-    util_dir = os.path.dirname(os.path.realpath(__file__))
-    src_dir = os.path.dirname(util_dir)
-    log_dir = os.path.join(os.path.dirname(src_dir), "logs", name)
-
-    if create_if_not_exist:
-        make_sure_path_exists(log_dir)
-    return log_dir
-
-
 def is_color_supported() -> bool:
     return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
