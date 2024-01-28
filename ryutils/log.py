@@ -102,9 +102,9 @@ def setup(log_dir: str, log_level: str, main_thread_name: str) -> None:
     if not os.path.isdir(log_dir):
         os.mkdir(log_dir)
 
-    log.setup_log(log_level, log_dir, main_thread_name)
+    setup_log(log_level, log_dir, main_thread_name)
     logging.getLogger().addHandler(
-        log.MultiHandler(
+        MultiHandler(
             log_dir,
             ["ThreadPool", "MainThread"],
         )
