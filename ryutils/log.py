@@ -120,6 +120,8 @@ def make_formatter_printer(
     logger = logging.getLogger(__name__)
 
     def formatter(message, *args, **kwargs):
+        message = str(message)
+
         if args or kwargs:
             formatted_text = message.format(*args, **kwargs)
         else:
