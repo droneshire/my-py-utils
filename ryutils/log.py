@@ -155,7 +155,7 @@ def make_formatter_printer(
         current_level = logging.getLevelName(logging.getLogger().getEffectiveLevel())
         if _ALWAYS_PRINT:
             print(formatter(message, *args, **kwargs))
-        elif current_level == logging.getLevelName(log_level):
+        elif logging.getLogger().isEnabledFor(log_level):
             print(formatter(message, *args, **kwargs))
 
         sys.stdout.flush()
