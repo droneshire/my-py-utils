@@ -107,11 +107,21 @@ def is_color_supported() -> bool:
     return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
 
+def get_log_dir_name(log_dir: str) -> str:
+    current_log_dir_name = time.strftime("%Y_%m_%d__%H_%M_%S", time.localtime(time.time()))
+    logs_dir = os.path.join(log_dir, "logs", current_log_dir_name)
+    make_sure_path_exists(path=logs_dir)
+    return log_dir
+
+
 def setup(log_dir: str, log_level: str, main_thread_name: str) -> None:
     if not os.path.isdir(log_dir):
         os.mkdir(log_dir)
 
+    log_dir = get_log_dir_name(log_dir)
+
     setup_log(log_level, log_dir, main_thread_name)
+
     logging.getLogger().addHandler(
         MultiHandler(
             log_dir,
@@ -204,15 +214,9 @@ def setup_log(log_level: str, log_dir: str, id_string: str, always_print: bool =
     if log_level == "NONE":
         return
 
-    log_name = (
-        time.strftime("%Y_%m_%d__%H_%M_%S", time.localtime(time.time())) + f"_{id_string}.log"
-    )
+    current_log_dir = get_log_dir_name(log_dir)
 
-    logs_dir = os.path.join(log_dir, "logs")
-
-    make_sure_path_exists(path=logs_dir)
-
-    log_file = os.path.join(logs_dir, log_name)
+    log_file = os.path.join(current_log_dir, f"{id_string}.log")
 
     logging.basicConfig(
         filename=log_file,
