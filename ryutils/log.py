@@ -141,10 +141,14 @@ def make_formatter_printer(
     def printer(message, *args, **kwargs):
         if log_level == logging.DEBUG:
             logger.debug(message)
+        elif log_level == logging.WARNING:
+            logger.warning(message)
         elif log_level == logging.ERROR:
             logger.critical(message)
         elif log_level == logging.INFO:
             logger.info(message)
+        elif log_level == logging.CRITICAL:
+            logger.critical(message)
 
         print(formatter(message, *args, **kwargs))
         sys.stdout.flush()
@@ -211,8 +215,8 @@ print_ok = make_formatter_printer(Colors.OKGREEN.value, log_level=logging.CRITIC
 print_ok_arrow = make_formatter_printer(
     Colors.OKGREEN.value, prefix=Prefixes.ARROW.value, log_level=logging.CRITICAL
 )
-print_bright = make_formatter_printer(Colors.OKCYAN.value, log_level=logging.WARN)
-print_warn = make_formatter_printer(Colors.WARNING.value, log_level=logging.WARN)
+print_bright = make_formatter_printer(Colors.OKCYAN.value, log_level=logging.WARNING)
+print_warn = make_formatter_printer(Colors.WARNING.value, log_level=logging.WARNING)
 print_fail = make_formatter_printer(Colors.FAIL.value, log_level=logging.CRITICAL)
 print_fail_arrow = make_formatter_printer(
     Colors.FAIL.value, prefix=Prefixes.ARROW.value, log_level=logging.CRITICAL
