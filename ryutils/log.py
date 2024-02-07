@@ -153,7 +153,7 @@ def make_formatter_printer(
             logger.critical(message)
 
         current_level = logging.getLevelName(logging.getLogger().getEffectiveLevel())
-        if _ALWAYS_PRINT or log_level == logging.DEBUG:
+        if _ALWAYS_PRINT:
             print(formatter(message, *args, **kwargs))
         elif current_level == logging.getLevelName(log_level):
             print(formatter(message, *args, **kwargs))
