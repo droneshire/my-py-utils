@@ -146,7 +146,7 @@ def make_formatter_printer(
         elif log_level == logging.WARNING:
             logger.warning(message)
         elif log_level == logging.ERROR:
-            logger.critical(message)
+            logger.error(message)
         elif log_level == logging.INFO:
             logger.info(message)
         elif log_level == logging.CRITICAL:
