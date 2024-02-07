@@ -59,8 +59,14 @@ class MultiHandler(logging.Handler):
             if key in self.files:
                 return self.files[key]
 
+            file_name = (
+                f"{key}.log".replace("/", "_").replace(" ", "_").replace("(", "").replace(")", "")
+            )
+            file_name = file_name.lower()
             file_descriptor = open(  # pylint: disable=consider-using-with
-                os.path.join(self.dirname, f"{key}.log"), "a", encoding="utf-8"
+                os.path.join(self.dirname, file_name),
+                "a",
+                encoding="utf-8",
             )
             self.files[key] = file_descriptor
             return file_descriptor
@@ -109,22 +115,22 @@ def is_color_supported() -> bool:
 
 def get_log_dir_name(log_dir: str) -> str:
     current_log_dir_name = time.strftime("%Y_%m_%d__%H_%M_%S", time.localtime(time.time()))
-    logs_dir = os.path.join(log_dir, "logs", current_log_dir_name)
-    make_sure_path_exists(path=logs_dir)
-    return log_dir
+    updated_log_dir = os.path.join(log_dir, "logs", current_log_dir_name)
+    make_sure_path_exists(path=updated_log_dir)
+    return updated_log_dir
 
 
 def setup(log_dir: str, log_level: str, main_thread_name: str) -> None:
     if not os.path.isdir(log_dir):
         os.mkdir(log_dir)
 
-    log_dir = get_log_dir_name(log_dir)
+    new_log_dir = get_log_dir_name(log_dir)
 
-    setup_log(log_level, log_dir, main_thread_name)
+    setup_log(log_level, new_log_dir, main_thread_name)
 
     logging.getLogger().addHandler(
         MultiHandler(
-            log_dir,
+            new_log_dir,
             ["ThreadPool", "MainThread"],
         )
     )
@@ -176,6 +182,10 @@ def make_formatter_printer(
 
         sys.stdout.flush()
 
+        # Flush the logger handlers
+        for handler in logger.handlers:
+            handler.flush()
+
     if return_formatter:
         return formatter
 
@@ -214,9 +224,7 @@ def setup_log(log_level: str, log_dir: str, id_string: str, always_print: bool =
     if log_level == "NONE":
         return
 
-    current_log_dir = get_log_dir_name(log_dir)
-
-    log_file = os.path.join(current_log_dir, f"{id_string}.log")
+    log_file = os.path.join(log_dir, f"{id_string}.log")
 
     logging.basicConfig(
         filename=log_file,
