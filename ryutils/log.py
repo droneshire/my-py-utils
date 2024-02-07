@@ -9,6 +9,8 @@ import typing as T
 
 from ryutils.file_util import make_sure_path_exists
 
+_ALWAYS_PRINT = False
+
 
 class Colors(enum.Enum):
     HEADER = "\033[95m"
@@ -150,7 +152,12 @@ def make_formatter_printer(
         elif log_level == logging.CRITICAL:
             logger.critical(message)
 
-        print(formatter(message, *args, **kwargs))
+        current_level = logging.getLevelName(logging.getLogger().getEffectiveLevel())
+        if _ALWAYS_PRINT or log_level == logging.DEBUG:
+            print(formatter(message, *args, **kwargs))
+        elif current_level == logging.getLevelName(log_level):
+            print(formatter(message, *args, **kwargs))
+
         sys.stdout.flush()
 
     if return_formatter:
@@ -184,7 +191,10 @@ def tar_logs(log_dir: str, tarname: str, remove_after: bool = False, max_tars: i
         shutil.rmtree(logs_dir)
 
 
-def setup_log(log_level: str, log_dir: str, id_string: str) -> None:
+def setup_log(log_level: str, log_dir: str, id_string: str, always_print: bool = False) -> None:
+    global _ALWAYS_PRINT  # pylint: disable=global-statement
+    _ALWAYS_PRINT = always_print
+
     if log_level == "NONE":
         return
 
