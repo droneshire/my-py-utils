@@ -35,7 +35,7 @@ class MultiHandler(logging.Handler):
     a global lock and it'd be OK to just have a per-thread or per-file lock.
     """
 
-    def __init__(self, dirname, block_list_prefixes: T.Optional[T.List[str]] = None):
+    def __init__(self, dirname: str, block_list_prefixes: T.Optional[T.List[str]] = None):
         super().__init__()
         self.files: T.Dict[str, T.TextIO] = {}
         self.dirname = dirname
@@ -43,7 +43,7 @@ class MultiHandler(logging.Handler):
         if not os.access(dirname, os.W_OK):
             raise OSError(f"Directory {dirname} not writeable")
 
-    def flush(self):
+    def flush(self) -> None:
         self.acquire()
         try:
             for file_descriptor in self.files.values():
@@ -51,9 +51,10 @@ class MultiHandler(logging.Handler):
         finally:
             self.release()
 
-    def _get_or_open(self, key):
+    def _get_or_open(self, key: str) -> T.Optional[T.TextIO]:
         "Get the file pointer for the given key, or else open the file"
         self.acquire()
+        file_descriptor: T.Optional[T.TextIO] = None
         try:
             if key in self.files:
                 return self.files[key]
@@ -66,15 +67,21 @@ class MultiHandler(logging.Handler):
         finally:
             self.release()
 
-    def emit(self, record):
+        return file_descriptor
+
+    def emit(self, record: logging.LogRecord) -> None:
         # No lock here; following code for StreamHandler and FileHandler
         try:
             name = record.threadName
+            if name is None:
+                return
             if any(n for n in self.block_list_prefixes if name.startswith(n)):
                 return
             file_descriptor = self._get_or_open(name)
+            if file_descriptor is None:
+                raise ValueError(f"Could not open file for {name}")
             msg = self.format(record)
-            file_descriptor.write(f"{msg.encode('utf-8')}\n")
+            file_descriptor.write(f"{msg}\n")
         except (KeyboardInterrupt, SystemExit):
             raise
         except:  # pylint: disable=bare-except
@@ -152,7 +159,6 @@ def make_formatter_printer(
         elif log_level == logging.CRITICAL:
             logger.critical(message)
 
-        current_level = logging.getLevelName(logging.getLogger().getEffectiveLevel())
         if _ALWAYS_PRINT:
             print(formatter(message, *args, **kwargs))
         elif logging.getLogger().isEnabledFor(log_level):
