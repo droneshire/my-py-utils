@@ -1,6 +1,7 @@
 """
 Get proxies from various sources.
 """
+
 import typing as T
 
 from fp.fp import FreeProxy
