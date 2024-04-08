@@ -32,6 +32,9 @@ isort:
 
 lint: check_format mypy pylint
 
+upgrade: install
+	pip install --upgrade $$(pip freeze | awk '{split($$0, a, "=="); print a[1]}')
+
 test:
 	$(RUN_PY) unittest discover -s test -p *_test.py -v
 
