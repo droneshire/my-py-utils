@@ -123,13 +123,19 @@ def get_log_dir_name(log_dir: str) -> str:
     return updated_log_dir
 
 
-def setup(log_dir: str, log_level: str, main_thread_name: str) -> None:
+def setup(
+    log_dir: str,
+    log_level: str,
+    main_thread_name: str,
+    always_print: bool = False,
+    downsample_count: int = 1,
+):
     if not os.path.isdir(log_dir):
         os.mkdir(log_dir)
 
     new_log_dir = get_log_dir_name(log_dir)
 
-    setup_log(log_level, new_log_dir, main_thread_name)
+    setup_log(log_level, new_log_dir, main_thread_name, always_print, downsample_count)
 
     logging.getLogger().addHandler(
         MultiHandler(
