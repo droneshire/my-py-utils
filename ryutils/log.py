@@ -180,7 +180,8 @@ def make_formatter_printer(
         frame = sys._getframe(1)  # pylint: disable=protected-access
         key = frame.f_code.co_filename + frame.f_code.co_name + str(frame.f_lineno)
         if key not in _DOWNSAMPLER and downsample > 1:
-            _DOWNSAMPLER[key] = {"downsample": downsample, "count": 0}
+            # set the count to downsample - 1 so that the first message is always printed
+            _DOWNSAMPLER[key] = {"downsample": downsample, "count": downsample - 1}
 
         if _ALWAYS_PRINT:
             print(formatter(message, *args, **kwargs))
