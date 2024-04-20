@@ -35,7 +35,7 @@ class FreeProxyProxy(Proxies):
     """
 
     def get(self, verbose: bool = False) -> T.Dict[str, str]:
-        proxy = {"http": FreeProxy(rand=True).get()}
+        proxy = {"http": FreeProxy(rand=True, https=True).get()}
         if verbose:
             log.print_bright(f"Using proxy: {proxy}")
         return proxy
