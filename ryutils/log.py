@@ -145,7 +145,6 @@ def make_formatter_printer(
     return_formatter: bool = False,
     downsample: int = 1,
 ) -> T.Callable:
-    global _DOWNSAMPLER  # pylint: disable=global-statement
     logger = logging.getLogger(__name__)
 
     def formatter(message, *args, **kwargs):
@@ -177,7 +176,7 @@ def make_formatter_printer(
         is_logger_in_use = logging.getLogger().hasHandlers()
 
         # obtain the backtrace of the caller to use as the key
-        frame = sys._getframe(1)
+        frame = sys._getframe(1)  # pylint: disable=protected-access
         key = frame.f_code.co_filename + frame.f_code.co_name + str(frame.f_lineno)
         if key not in _DOWNSAMPLER and downsample > 1:
             _DOWNSAMPLER[key] = {"downsample": downsample, "count": 0}
