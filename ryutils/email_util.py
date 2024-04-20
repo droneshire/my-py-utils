@@ -18,11 +18,11 @@ def is_valid_email(email: str) -> bool:
 
 
 def get_email_accounts_from_password(
-    encrypted_emails: T.List[T.Dict[str, str]],
+    emails: T.List[T.Dict[str, str]],
     dry_run: bool = False,
 ) -> T.List[Email]:
     email_accounts = []
-    for email_account in encrypted_emails:
+    for email_account in emails:
         assert email_account["password"], "Missing password!"
         email_password = email_account["password"]
         email_accounts.append(
