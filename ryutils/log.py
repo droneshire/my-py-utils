@@ -10,6 +10,8 @@ import typing as T
 from ryutils.file_util import make_sure_path_exists
 
 _ALWAYS_PRINT = False
+_DOWNSAMPLER: T.Dict[str, T.Dict[int, int]] = {}
+_DOWNSAMPLE_COUNT = 20
 
 
 class Colors(enum.Enum):
@@ -141,7 +143,9 @@ def make_formatter_printer(
     log_level: int = logging.INFO,
     prefix: str = "",
     return_formatter: bool = False,
+    downsample: int = 1,
 ) -> T.Callable:
+    global _DOWNSAMPLER  # pylint: disable=global-statement
     logger = logging.getLogger(__name__)
 
     def formatter(message, *args, **kwargs):
@@ -171,8 +175,21 @@ def make_formatter_printer(
 
     def printer(message, *args, **kwargs):
         is_logger_in_use = logging.getLogger().hasHandlers()
+
+        # obtain the backtrace of the caller to use as the key
+        frame = sys._getframe(1)
+        key = frame.f_code.co_filename + frame.f_code.co_name + str(frame.f_lineno)
+        if key not in _DOWNSAMPLER and downsample > 1:
+            _DOWNSAMPLER[key] = {"downsample": downsample, "count": 0}
+
         if _ALWAYS_PRINT:
             print(formatter(message, *args, **kwargs))
+        elif key in _DOWNSAMPLER:
+            _DOWNSAMPLER[key]["count"] += 1
+            if _DOWNSAMPLER[key]["count"] % _DOWNSAMPLER[key]["downsample"] == 0:
+                print(formatter(message, *args, **kwargs))
+            else:
+                is_logger_in_use = False
         elif not is_logger_in_use or logging.getLogger().isEnabledFor(log_level):
             print(formatter(message, *args, **kwargs))
 
@@ -257,6 +274,52 @@ print_bold = make_formatter_printer(Colors.BOLD.value, log_level=logging.CRITICA
 print_normal = make_formatter_printer(Colors.ENDC.value, log_level=logging.DEBUG)
 print_normal_arrow = make_formatter_printer(
     Colors.ENDC.value, prefix=Prefixes.ARROW.value, log_level=logging.DEBUG
+)
+
+print_ok_blue_slow = make_formatter_printer(
+    Colors.OKBLUE.value, log_level=logging.INFO, downsample=_DOWNSAMPLE_COUNT
+)
+print_ok_blue_arrow_slow = make_formatter_printer(
+    Colors.OKBLUE.value,
+    prefix=Prefixes.ARROW.value,
+    log_level=logging.INFO,
+    downsample=_DOWNSAMPLE_COUNT,
+)
+print_ok_slow = make_formatter_printer(
+    Colors.OKGREEN.value, log_level=logging.CRITICAL, downsample=_DOWNSAMPLE_COUNT
+)
+print_ok_arrow_slow = make_formatter_printer(
+    Colors.OKGREEN.value,
+    prefix=Prefixes.ARROW.value,
+    log_level=logging.CRITICAL,
+    downsample=_DOWNSAMPLE_COUNT,
+)
+print_bright_slow = make_formatter_printer(
+    Colors.OKCYAN.value, log_level=logging.WARNING, downsample=_DOWNSAMPLE_COUNT
+)
+print_warn_slow = make_formatter_printer(
+    Colors.WARNING.value, log_level=logging.WARNING, downsample=_DOWNSAMPLE_COUNT
+)
+print_fail_slow = make_formatter_printer(
+    Colors.FAIL.value, log_level=logging.CRITICAL, downsample=_DOWNSAMPLE_COUNT
+)
+print_fail_arrow_slow = make_formatter_printer(
+    Colors.FAIL.value,
+    prefix=Prefixes.ARROW.value,
+    log_level=logging.CRITICAL,
+    downsample=_DOWNSAMPLE_COUNT,
+)
+print_bold_slow = make_formatter_printer(
+    Colors.BOLD.value, log_level=logging.CRITICAL, downsample=_DOWNSAMPLE_COUNT
+)
+print_normal_slow = make_formatter_printer(
+    Colors.ENDC.value, log_level=logging.DEBUG, downsample=_DOWNSAMPLE_COUNT
+)
+print_normal_arrow_slow = make_formatter_printer(
+    Colors.ENDC.value,
+    prefix=Prefixes.ARROW.value,
+    log_level=logging.DEBUG,
+    downsample=_DOWNSAMPLE_COUNT,
 )
 
 
