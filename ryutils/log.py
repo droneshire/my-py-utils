@@ -9,9 +9,10 @@ import typing as T
 
 from ryutils.file_util import make_sure_path_exists
 
+_DEFAULT_DOWNSAMPLE_COUNT = 20
 _ALWAYS_PRINT = False
 _DOWNSAMPLER: T.Dict[str, T.Dict[int, int]] = {}
-_DOWNSAMPLE_COUNT = 20
+_DOWNSAMPLE_COUNT = _DEFAULT_DOWNSAMPLE_COUNT
 
 
 class Colors(enum.Enum):
@@ -237,9 +238,17 @@ def tar_logs(log_dir: str, tarname: str, remove_after: bool = False, max_tars: i
         shutil.rmtree(logs_dir)
 
 
-def setup_log(log_level: str, log_dir: str, id_string: str, always_print: bool = False) -> None:
+def setup_log(
+    log_level: str,
+    log_dir: str,
+    id_string: str,
+    always_print: bool = False,
+    downsample_count: int = _DEFAULT_DOWNSAMPLE_COUNT,
+) -> None:
     global _ALWAYS_PRINT  # pylint: disable=global-statement
+    global _DOWNSAMPLE_COUNT  # pylint: disable=global-statement
     _ALWAYS_PRINT = always_print
+    _DOWNSAMPLE_COUNT = downsample_count
 
     if log_level == "NONE":
         return
