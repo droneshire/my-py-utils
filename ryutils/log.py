@@ -197,14 +197,11 @@ def make_formatter_printer(
             # set the count to downsample_val - 1 so that the first message is always printed
             _DOWNSAMPLER[key] = {"downsample": downsample_val, "count": downsample_val - 1}
 
-        if _ALWAYS_PRINT:
+        if _ALWAYS_PRINT or (
+            key in _DOWNSAMPLER
+            and _DOWNSAMPLER[key]["count"] % _DOWNSAMPLER[key]["downsample"] == 0
+        ):
             print(formatted_text)
-        elif key in _DOWNSAMPLER:
-            _DOWNSAMPLER[key]["count"] += 1
-            if _DOWNSAMPLER[key]["count"] % _DOWNSAMPLER[key]["downsample"] == 0:
-                print(formatted_text)
-            else:
-                is_logger_in_use = False
         elif not is_logger_in_use or logging.getLogger().isEnabledFor(log_level):
             print(formatted_text)
 
