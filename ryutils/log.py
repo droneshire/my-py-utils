@@ -188,23 +188,25 @@ def make_formatter_printer(
 
         downsample_val = get_downsample_count() if downsample else 1
 
+        formatted_text = formatter(message, *args, **kwargs)
+
         # obtain the backtrace of the caller to use as the key
         frame = sys._getframe(1)  # pylint: disable=protected-access
-        key = frame.f_code.co_filename + frame.f_code.co_name + str(frame.f_lineno)
+        key = frame.f_code.co_filename + frame.f_code.co_name + str(frame.f_lineno) + formatted_text
         if key not in _DOWNSAMPLER and downsample_val > 1:
             # set the count to downsample_val - 1 so that the first message is always printed
             _DOWNSAMPLER[key] = {"downsample": downsample_val, "count": downsample_val - 1}
 
         if _ALWAYS_PRINT:
-            print(formatter(message, *args, **kwargs))
+            print(formatted_text)
         elif key in _DOWNSAMPLER:
             _DOWNSAMPLER[key]["count"] += 1
             if _DOWNSAMPLER[key]["count"] % _DOWNSAMPLER[key]["downsample"] == 0:
-                print(formatter(message, *args, **kwargs))
+                print(formatted_text)
             else:
                 is_logger_in_use = False
         elif not is_logger_in_use or logging.getLogger().isEnabledFor(log_level):
-            print(formatter(message, *args, **kwargs))
+            print(formatted_text)
 
         if is_logger_in_use:
             if log_level == logging.DEBUG:
