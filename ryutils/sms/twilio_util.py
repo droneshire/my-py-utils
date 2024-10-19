@@ -75,6 +75,10 @@ class TwilioUtil:
         if self.dry_run:
             return
 
+        if self.sms_client is None:
+            log.print_warn("TwilioUtil not properly initialized")
+            return
+
         message = self.sms_client.messages.create(
             body=content,
             from_=self.my_number,

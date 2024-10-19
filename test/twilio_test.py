@@ -8,7 +8,7 @@ from ryutils.sms.twilio_util import TwilioUtil
 
 
 class TwilioUtilStub(TwilioUtil):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("", "", "", verbose=True, time_between_sms=0)
         self.num_sent = 0
         self.send_to = ""

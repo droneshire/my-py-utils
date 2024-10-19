@@ -13,6 +13,8 @@ _DEFAULT_DOWNSAMPLE_COUNT = 20
 _ALWAYS_PRINT = False
 _DOWNSAMPLER: T.Dict[str, T.Dict[int, int]] = {}
 _DOWNSAMPLE_COUNT = _DEFAULT_DOWNSAMPLE_COUNT
+_CALLBACK = None
+_CALLBACK_LEVEL = logging.WARNING
 
 
 class Colors(enum.Enum):
@@ -129,13 +131,32 @@ def setup(
     main_thread_name: str,
     always_print: bool = False,
     downsample_count: int = 1,
+    use_multihandler: bool = True,
+    callback: T.Optional[T.Callable] = None,
+    callback_level: int = logging.WARNING,
 ):
+    global _ALWAYS_PRINT  # pylint: disable=global-statement
+    global _DOWNSAMPLE_COUNT  # pylint: disable=global-statement
+    global _CALLBACK  # pylint: disable=global-statement
+    global _CALLBACK_LEVEL  # pylint: disable=global-statement
+    _ALWAYS_PRINT = always_print
+    _DOWNSAMPLE_COUNT = downsample_count
+    _CALLBACK = callback
+    _CALLBACK_LEVEL = callback_level
+
     if not os.path.isdir(log_dir):
         os.mkdir(log_dir)
 
     new_log_dir = get_log_dir_name(log_dir)
 
-    setup_log(log_level, new_log_dir, main_thread_name, always_print, downsample_count)
+    setup_log(
+        log_level,
+        new_log_dir,
+        main_thread_name,
+    )
+
+    if not use_multihandler:
+        return
 
     logging.getLogger().addHandler(
         MultiHandler(
@@ -217,6 +238,9 @@ def make_formatter_printer(
             elif log_level == logging.CRITICAL:
                 logger.critical(message)
 
+        if _CALLBACK and log_level >= _CALLBACK_LEVEL:
+            _CALLBACK(message)
+
         sys.stdout.flush()
 
     if return_formatter:
@@ -254,22 +278,18 @@ def setup_log(
     log_level: str,
     log_dir: str,
     id_string: str,
-    always_print: bool = False,
-    downsample_count: int = _DEFAULT_DOWNSAMPLE_COUNT,
 ) -> None:
-    global _ALWAYS_PRINT  # pylint: disable=global-statement
-    global _DOWNSAMPLE_COUNT  # pylint: disable=global-statement
-    _ALWAYS_PRINT = always_print
-    _DOWNSAMPLE_COUNT = downsample_count
 
     if log_level == "NONE":
         return
 
     log_file = os.path.join(log_dir, f"{id_string}.log")
 
+    log_level_num = getattr(logging, log_level.upper(), logging.INFO)
+
     logging.basicConfig(
         filename=log_file,
-        level=logging.getLevelName(log_level),
+        level=log_level_num,
         format="[%(levelname)s][%(asctime)s][%(name)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
         filemode="w",
