@@ -125,6 +125,15 @@ def get_log_dir_name(log_dir: str) -> str:
     return updated_log_dir
 
 
+def update_callback(
+    callback: T.Optional[T.Callable], callback_level: int = logging.WARNING
+) -> None:
+    global _CALLBACK  # pylint: disable=global-statement
+    global _CALLBACK_LEVEL  # pylint: disable=global-statement
+    _CALLBACK = callback
+    _CALLBACK_LEVEL = callback_level
+
+
 def setup(
     log_dir: str,
     log_level: str,
