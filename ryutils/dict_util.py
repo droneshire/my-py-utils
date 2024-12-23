@@ -66,3 +66,37 @@ def find_in_nested_dict(data: T.Any, key: str) -> T.Any:
             if result is not None:
                 return result
     return None
+
+
+def recursive_replace(data: T.Any, target_key: str, new_value: str) -> T.Any:
+    """
+    Recursively replace all occurrences of a specific
+    key with a new value in a nested dictionary or list.
+    """
+    if isinstance(data, dict):
+        for key, value in data.items():
+            if key == target_key:
+                data[key] = new_value
+            else:
+                data[key] = recursive_replace(value, target_key, new_value)
+    elif isinstance(data, list):
+        for index, item in enumerate(data):
+            data[index] = recursive_replace(item, target_key, new_value)
+
+    return data
+
+
+def add_item(data: T.Any, key_path: str, new_value: str) -> T.Any:
+    key_path_list = key_path.split(".")
+    if len(key_path_list) == 1:
+        data[key_path] = new_value
+        return data
+
+    key = key_path_list[0]
+    if key not in data:
+        data[key] = {}
+        data[key] = add_item(data[key], ".".join(key_path_list[1:]), new_value)
+    else:
+        data[key] = add_item(data[key], ".".join(key_path_list[1:]), new_value)
+
+    return data
