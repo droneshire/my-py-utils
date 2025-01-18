@@ -2,6 +2,7 @@ import datetime
 import os
 import typing as T
 import unittest
+from datetime import timezone
 
 from ryutils import log
 from ryutils.sms.twilio_util import TwilioUtil
@@ -19,7 +20,7 @@ class TwilioUtilStub(TwilioUtil):
         self,
         to_number: str,
         content: str,
-        now: datetime.datetime = datetime.datetime.utcnow(),
+        now: datetime.datetime = datetime.datetime.now(timezone.utc),
     ) -> None:
         super().send_sms_if_in_window(to_number, content, self.now)
 
