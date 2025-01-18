@@ -1,7 +1,7 @@
 import datetime
 import time
 import typing as T
-from datetime import timezone
+from datetime import timezone as tz
 
 import pytz
 from twilio.rest import Client
@@ -64,7 +64,7 @@ class TwilioUtil:
         self,
         to_number: str,
         content: str,
-        now: datetime.datetime = datetime.datetime.now(timezone.utc),
+        now: datetime.datetime = datetime.datetime.now(tz.utc),
     ) -> None:
         if to_number not in self.message_queue:
             self.message_queue[to_number] = []
@@ -90,7 +90,7 @@ class TwilioUtil:
             log.print_bold(f"Sent SMS: {message.sid} - {content}")
 
     def check_sms_queue(
-        self, to_number: str, now: datetime.datetime = datetime.datetime.now(timezone.utc)
+        self, to_number: str, now: datetime.datetime = datetime.datetime.now(tz.utc)
     ) -> None:
         if to_number in self.window:
             start_time = self.window[to_number].get("start_time", 60 * 60 * 8)
