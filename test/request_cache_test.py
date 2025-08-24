@@ -315,7 +315,7 @@ class RequestsHelperCacheTest(unittest.TestCase):
             self.log_file.unlink()
         Path(self.temp_dir).rmdir()
 
-    @patch.object(RequestsHelper, '_make_request_with_retry')
+    @patch.object(RequestsHelper, "_make_request_with_retry")
     def test_get_with_cache(self, mock_request: Mock) -> None:
         """Test that GET requests are cached."""
         # Mock response
@@ -339,7 +339,7 @@ class RequestsHelperCacheTest(unittest.TestCase):
         self.assertEqual(result3, {"test": "data"})
         self.assertEqual(mock_request.call_count, 2)
 
-    @patch.object(RequestsHelper, '_make_request_with_retry')
+    @patch.object(RequestsHelper, "_make_request_with_retry")
     def test_get_without_cache(self, mock_request: Mock) -> None:
         """Test that RequestsHelper works without cache."""
         # Create RequestsHelper without cache
@@ -363,7 +363,7 @@ class RequestsHelperCacheTest(unittest.TestCase):
         self.assertEqual(result2, {"test": "data"})
         self.assertEqual(mock_request.call_count, 2)
 
-    @patch.object(RequestsHelper, '_make_request_with_retry')
+    @patch.object(RequestsHelper, "_make_request_with_retry")
     def test_cache_expiration_in_requests(self, mock_request: Mock) -> None:
         """Test that cache expiration works in RequestsHelper."""
         # Mock response
@@ -385,7 +385,7 @@ class RequestsHelperCacheTest(unittest.TestCase):
         self.assertEqual(result2, {"test": "data"})
         self.assertEqual(mock_request.call_count, 2)  # Should call API again
 
-    @patch.object(RequestsHelper, '_make_request_with_retry')
+    @patch.object(RequestsHelper, "_make_request_with_retry")
     def test_post_not_cached(self, mock_request: Mock) -> None:
         """Test that POST requests are not cached."""
         # Mock response
@@ -427,7 +427,7 @@ class RequestsHelperCacheTest(unittest.TestCase):
 
         self.assertIsNone(requests_helper.cache)
 
-    @patch.object(RequestsHelper, '_make_request_with_retry')
+    @patch.object(RequestsHelper, "_make_request_with_retry")
     def test_post_with_cache_clear_path(self, mock_request: Mock) -> None:
         """Test that POST requests clear cache with custom path."""
         # Mock response
@@ -469,7 +469,7 @@ class RequestsHelperCacheTest(unittest.TestCase):
         # Cache for /api/users should remain
         self.assertEqual(self.requests_helper.cache.get("GET", "/api/users"), {"cached": "users"})
 
-    @patch.object(RequestsHelper, '_make_request_with_retry')
+    @patch.object(RequestsHelper, "_make_request_with_retry")
     def test_put_with_cache_clear_path(self, mock_request: Mock) -> None:
         """Test that PUT requests clear cache with custom path."""
         # Mock response
@@ -510,7 +510,7 @@ class RequestsHelperCacheTest(unittest.TestCase):
         # Cache for /api/users should remain
         self.assertEqual(self.requests_helper.cache.get("GET", "/api/users"), {"cached": "users"})
 
-    @patch.object(RequestsHelper, '_make_request_with_retry')
+    @patch.object(RequestsHelper, "_make_request_with_retry")
     def test_delete_with_cache_clear_path(self, mock_request: Mock) -> None:
         """Test that DELETE requests clear cache with custom path."""
         # Mock response
@@ -548,7 +548,7 @@ class RequestsHelperCacheTest(unittest.TestCase):
         # Cache for /api/users should remain
         self.assertEqual(self.requests_helper.cache.get("GET", "/api/users"), {"data": "users"})
 
-    @patch.object(RequestsHelper, '_make_request_with_retry')
+    @patch.object(RequestsHelper, "_make_request_with_retry")
     def test_post_without_cache_clear_path(self, mock_request: Mock) -> None:
         """Test that POST requests clear cache with default path when cache_clear_path is None."""
         # Mock response
@@ -580,7 +580,7 @@ class RequestsHelperCacheTest(unittest.TestCase):
         # Cache for /api/users should remain
         self.assertEqual(self.requests_helper.cache.get("GET", "/api/users"), {"cached": "users"})
 
-    @patch.object(RequestsHelper, '_make_request_with_retry')
+    @patch.object(RequestsHelper, "_make_request_with_retry")
     def test_post_cache_clear_path_with_different_methods(self, mock_request: Mock) -> None:
         """Test that cache clearing with custom path works for different HTTP methods."""
         # Mock response
