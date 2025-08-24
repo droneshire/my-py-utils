@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 required = []
 
-with open("base_requirements.in", encoding="utf-8") as infile:
+with open("packages/base_requirements.in", encoding="utf-8") as infile:
     required = [line.strip() for line in infile if line.strip() and not line.startswith("#")]
 
 LONG_DESCRIPTION = ""
