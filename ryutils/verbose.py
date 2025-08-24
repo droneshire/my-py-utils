@@ -5,7 +5,7 @@ from ryutils import log
 
 
 class Verbose:
-    DEFAULT_TYPES = [
+    DEFAULT_TYPES: T.List[str] = [
         "general",
         "requests",
         "requests_url",
@@ -14,7 +14,7 @@ class Verbose:
         "mitmproxy",
     ]
     # Add types here
-    TYPES = []
+    TYPES: T.List[str] = []
 
     def __init__(
         self, args: T.Optional[argparse.Namespace] = None, print_args: bool = False
