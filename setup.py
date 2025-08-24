@@ -2,19 +2,8 @@ from setuptools import find_packages, setup
 
 required = []
 
-# with open("requirements.txt", encoding="utf-8") as infile:
-#     required = infile.read().splitlines()
-
-required += [
-    "free_proxy>=1.1.1",
-    "pyshorteners>=1.0.1",
-    "python-telegram-bot>=21.0.1",
-    "pytz>=2024.1",
-    "requests>=2.31.0",
-    "twilio>=9.0.4",
-    "yagmail>=0.15.293",
-    "yaspin>=3.0.1",
-]
+with open("packages/base_requirements.in", encoding="utf-8") as infile:
+    required = [line.strip() for line in infile if line.strip() and not line.startswith("#")]
 
 LONG_DESCRIPTION = ""
 with open("README.md", encoding="utf-8") as infile:
@@ -40,6 +29,6 @@ setup(
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
 )

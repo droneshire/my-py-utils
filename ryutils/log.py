@@ -6,8 +6,7 @@ import sys
 import tarfile
 import time
 import typing as T
-
-from ryutils.file_util import make_sure_path_exists
+from pathlib import Path
 
 _DEFAULT_DOWNSAMPLE_COUNT = 20
 _ALWAYS_PRINT = False
@@ -121,7 +120,7 @@ def is_color_supported() -> bool:
 def get_log_dir_name(log_dir: str) -> str:
     current_log_dir_name = time.strftime("%Y_%m_%d__%H_%M_%S", time.localtime(time.time()))
     updated_log_dir = os.path.join(log_dir, "logs", current_log_dir_name)
-    make_sure_path_exists(path=updated_log_dir)
+    Path(updated_log_dir).mkdir(parents=True, exist_ok=True)
     return updated_log_dir
 
 
@@ -274,7 +273,7 @@ def tar_logs(log_dir: str, tarname: str, remove_after: bool = False, max_tars: i
             break
 
     logs_dir = os.path.join(log_dir, "logs")
-    make_sure_path_exists(logs_dir)
+    Path(logs_dir).mkdir(parents=True, exist_ok=True)
     tar_name = os.path.join(log_dir, tarname)
     with tarfile.open(tar_name, "w:gz") as tar:
         tar.add(logs_dir, arcname="logs")

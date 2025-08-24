@@ -1,0 +1,8 @@
+# Development dependencies
+black
+isort
+mypy
+pylint
+pytest
+coverage
+setuptools

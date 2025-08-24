@@ -1,16 +1,41 @@
 PYTHON ?= python3
+PIP ?= pip
+MAYBE_UV = uv
+PIP_COMPILE = uv pip compile
+
+# Core paths
+PACKAGES_PATH=$(PWD)/packages
+PY_VENV=$(PWD)/venv
+PY_VENV_REL_PATH=$(subst $(PWD)/,,$(PY_VENV))
+
+# Python execution
 PY_PATH=$(PWD)
 RUN_PY = PYTHONPATH=$(PY_PATH) $(PYTHON) -m
-BLACK_CMD = $(RUN_PY) black --line-length 100 .
-# NOTE: exclude any virtual environment subdirectories here
-PY_FIND_COMMAND = find -name '*.py' ! -path './venv/*'
+
+# Formatting and linting
+PY_FIND_COMMAND = find . -name '*.py' | grep -vE "($(PY_VENV_REL_PATH))"
+BLACK_CMD = $(RUN_PY) black --line-length 100 $(shell $(PY_FIND_COMMAND))
 MYPY_CONFIG=$(PY_PATH)/mypy_config.ini
 
 init:
-	$(PYTHON) -m venv venv
+	@if [ -d "$(PY_VENV_REL_PATH)" ]; then \
+		echo "\033[33mVirtual environment already exists\033[0m"; \
+	else \
+		$(PYTHON) -m venv $(PY_VENV_REL_PATH); \
+	fi
+	@echo "\033[0;32mRun 'source $(PY_VENV_REL_PATH)/bin/activate' to activate the virtual environment\033[0m"
 
 install:
-	pip3 install -r requirements.txt
+	$(PIP) install --upgrade pip
+	$(PIP) install uv
+	$(PIP_COMPILE) --strip-extras --output-file=$(PACKAGES_PATH)/requirements.txt $(PACKAGES_PATH)/base_requirements.in
+	$(MAYBE_UV) pip install -r $(PACKAGES_PATH)/requirements.txt
+
+install_dev:
+	$(PIP) install --upgrade pip
+	$(PIP) install uv
+	$(PIP_COMPILE) --strip-extras --output-file=$(PACKAGES_PATH)/requirements-dev.txt $(PACKAGES_PATH)/base_requirements.in $(PACKAGES_PATH)/dev_requirements.in
+	$(MAYBE_UV) pip install -r $(PACKAGES_PATH)/requirements-dev.txt
 
 format: isort
 	$(BLACK_CMD)
@@ -32,12 +57,12 @@ isort:
 
 lint: check_format mypy pylint
 
-upgrade: install
-	pip install --upgrade $$(pip freeze | awk '{split($$0, a, "=="); print a[1]}')
-	pip freeze > requirements.txt
-
 test:
 	$(RUN_PY) unittest discover -s test -p *_test.py -v
+
+upgrade: install
+	$(MAYBE_UV) pip install --upgrade $$(pip freeze | awk '{split($$0, a, "=="); print a[1]}')
+	$(MAYBE_UV) pip freeze > $(PACKAGES_PATH)/requirements.txt
 
 release:
 	@echo "\033[0;32mCreating version $(PYPY_VERSION_ARG)\033[0m"
@@ -51,4 +76,10 @@ release:
 	gh release create $(PYPY_VERSION_ARG) --notes "Release $(PYPY_VERSION_ARG)" --latest --verify-tag
 	@echo "\033[0;32mDONE!\033[0m"
 
-.PHONY: init install format check_format mypy pylint autopep8 isort lint test release
+clean:
+	rm -rf $(PY_VENV)
+	rm -rf .ruff_cache
+	rm -rf .mypy_cache
+	rm -rf .coverage
+
+.PHONY: init install install_dev format check_format mypy pylint autopep8 isort lint test upgrade release clean
