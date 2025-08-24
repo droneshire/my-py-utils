@@ -16,6 +16,9 @@ if ! pip install --force-reinstall --no-deps uv 2>/dev/null; then
     pip install --break-system-packages uv
 fi
 
+uv pip compile --strip-extras --output-file=requirements.txt packages/base_requirements.in packages/dev_requirements.in
+uv pip install --system --break-system-packages -r requirements.txt
+
 # Lint with black
 make check_format PYTHON=python3
 
