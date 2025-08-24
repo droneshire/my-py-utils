@@ -65,16 +65,29 @@ upgrade: install
 	$(MAYBE_UV) pip freeze > $(PACKAGES_PATH)/requirements.txt
 
 release:
-	@echo "\033[0;32mCreating version $(PYPY_VERSION_ARG)\033[0m"
-	echo $(PYPY_VERSION_ARG) > VERSION
-	git add VERSION
-	git commit -m "Release $(PYPY_VERSION_ARG)"
-	git push
-	git tag -l $(PYPY_VERSION_ARG) | grep -q $(PYPY_VERSION_ARG) || git tag $(PYPY_VERSION_ARG)
-	git push origin $(PYPY_VERSION_ARG)
-	sleep 5
-	gh release create $(PYPY_VERSION_ARG) --notes "Release $(PYPY_VERSION_ARG)" --latest --verify-tag
-	@echo "\033[0;32mDONE!\033[0m"
+	@if [ "$(shell git rev-parse --abbrev-ref HEAD)" != "main" ]; then \
+		echo "\033[0;31mERROR: You must be on the main branch to create a release.\033[0m"; \
+		exit 1; \
+	fi; \
+	if [ ! -f VERSION ]; then \
+		echo "1.0.0" > VERSION; \
+		echo "\033[0;32mVERSION file not found. Created VERSION file with version 1.0.0\033[0m"; \
+		VERSION_ARG="1.0.0"; \
+	fi; \
+	if [ -z "$(VERSION_ARG)" ]; then \
+		echo "\033[0;32mCreating new version\033[0m"; \
+		VERSION_ARG=$$(awk -F. '{print $$1"."$$2"."$$3+1}' VERSION); \
+	fi; \
+	echo "Creating version $$VERSION_ARG"; \
+	echo $$VERSION_ARG > VERSION; \
+	git add VERSION; \
+	git commit -m "Release $$VERSION_ARG"; \
+	git push; \
+	git tag -l $$VERSION_ARG | grep -q $$VERSION_ARG || git tag $$VERSION_ARG; \
+	git push origin $$VERSION_ARG; \
+	sleep 5; \
+	gh release create $$VERSION_ARG --notes "Release $$VERSION_ARG" --latest --verify-tag; \
+	echo "\033[0;32mDONE!\033[0m"
 
 clean:
 	rm -rf $(PY_VENV)
