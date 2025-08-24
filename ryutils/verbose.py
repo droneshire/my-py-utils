@@ -21,7 +21,7 @@ class Verbose:
         print_args: bool = False,
         verbose_types: T.Optional[T.List[str]] = None,
     ) -> None:
-        self.TYPES = Verbose.DEFAULT_TYPES  # pylint: disable=invalid-name
+        self.TYPES = Verbose.DEFAULT_TYPES.copy()  # pylint: disable=invalid-name
 
         if verbose_types is not None:
             self.TYPES.extend(verbose_types)
@@ -51,11 +51,14 @@ class Verbose:
         verbose_group = parser.add_argument_group("Verbose Options")
         verbose_group.add_argument("--verbose", action="store_true", help="Enable verbose mode")
 
-        verbose_types = Verbose.DEFAULT_TYPES
+        all_verbose_types = Verbose.DEFAULT_TYPES.copy()
         if verbose_types is not None:
-            verbose_types.extend(verbose_types)
+            all_verbose_types.extend(verbose_types)
 
-        for verbose_type in verbose_types:
+        print(f"Verbose types: {all_verbose_types}")
+
+        for verbose_type in all_verbose_types:
+            print(f"Adding verbose type: {verbose_type}")
             verbose_group.add_argument(
                 f"--{verbose_type}-verbose",
                 action="store_true",
