@@ -13,6 +13,7 @@ class Verbose:
         "request_cache",
         "mitmproxy",
     ]
+    TYPES: T.List[str] = []
 
     def __init__(
         self,
@@ -20,16 +21,16 @@ class Verbose:
         print_args: bool = False,
         verbose_types: T.Optional[T.List[str]] = None,
     ) -> None:
-        self.types = self.DEFAULT_TYPES
+        self.TYPES = Verbose.DEFAULT_TYPES  # pylint: disable=invalid-name
 
         if verbose_types is not None:
-            self.types.extend(verbose_types)
+            self.TYPES.extend(verbose_types)
 
-        for verbose_type in self.types:
+        for verbose_type in self.TYPES:
             setattr(self, verbose_type, False)
 
         if args is not None:
-            for verbose_type in self.types:
+            for verbose_type in self.TYPES:
                 setattr(
                     self,
                     verbose_type,
@@ -43,10 +44,18 @@ class Verbose:
         log.print_normal(f"Verbose args:\n\t{print_str}")
 
     @staticmethod
-    def add_arguments(parser: argparse.ArgumentParser) -> None:
+    def add_arguments(
+        parser: argparse.ArgumentParser,
+        verbose_types: T.Optional[T.List[str]] = None,
+    ) -> None:
         verbose_group = parser.add_argument_group("Verbose Options")
         verbose_group.add_argument("--verbose", action="store_true", help="Enable verbose mode")
-        for verbose_type in Verbose.types:
+
+        verbose_types = Verbose.DEFAULT_TYPES
+        if verbose_types is not None:
+            verbose_types.extend(verbose_types)
+
+        for verbose_type in verbose_types:
             verbose_group.add_argument(
                 f"--{verbose_type}-verbose",
                 action="store_true",
@@ -54,13 +63,13 @@ class Verbose:
             )
 
     def __getattr__(self, name: str) -> T.Any:
-        if name in self.types:
+        if name in self.TYPES:
             return False
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
     def _string_repr(self) -> str:
         string_repr = ", ".join(
-            [f"{verbose_type}={getattr(self, verbose_type)}" for verbose_type in self.types]
+            [f"{verbose_type}={getattr(self, verbose_type)}" for verbose_type in self.TYPES]
         )
         return string_repr
 
