@@ -1,2 +1,3 @@
 include requirements.txt
+include packages/base_requirements.in
 include VERSION
