@@ -1,6 +1,7 @@
 import os
 import traceback
 
+
 def get_module_name(file_path: str, layers: int = 1) -> str:
     """
     Get the module name from a file path from an executable path.
