@@ -55,8 +55,6 @@ class Verbose:
         if verbose_types is not None:
             all_verbose_types.extend(verbose_types)
 
-        print(f"Verbose types: {all_verbose_types}")
-
         for verbose_type in all_verbose_types:
             print(f"Adding verbose type: {verbose_type}")
             verbose_group.add_argument(
