@@ -1,5 +1,6 @@
 discord_webhook>=1.4.1
 memory_profiler
+paramiko
 psutil
 pyshorteners>=1.0.1
 python-telegram-bot>=21.0.1
