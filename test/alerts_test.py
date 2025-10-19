@@ -36,7 +36,7 @@ class TestAlerter(unittest.TestCase):
         alerter1 = MockAlerter(webhook_url="test_id")
         alerter2 = MockAlerter(webhook_url="test_id")
         alerter3 = MockAlerter(webhook_url="different_id")
-        
+
         # Set same callback for equality test
         def dummy_callback(msg: str) -> None:
             pass
@@ -52,7 +52,7 @@ class TestAlerter(unittest.TestCase):
         alerter1 = MockAlerter(webhook_url="test_id")
         alerter2 = MockAlerter(webhook_url="test_id")
         alerter3 = MockAlerter(webhook_url="different_id")
-        
+
         # Set same callback for hash test
         def dummy_callback(msg: str) -> None:
             pass
@@ -67,7 +67,7 @@ class TestAlerter(unittest.TestCase):
         """Test Alerter ordering."""
         alerter1 = MockAlerter(webhook_url="a")
         alerter2 = MockAlerter(webhook_url="b")
-        
+
         # Set same callback for ordering test
         def dummy_callback(msg: str) -> None:
             pass
@@ -287,7 +287,7 @@ class TestDiscordAlerter(unittest.TestCase):
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.text = "success"
-        mock_webhook.return_value.execute.return_value = mock_response
+        mock_to_thread.return_value = mock_response
 
         discord_alerter = DiscordAlerter(
             webhook_url="https://discord.com/api/webhooks/test",
