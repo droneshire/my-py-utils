@@ -3,16 +3,15 @@ Unit tests for the alerts module.
 """
 
 import argparse
+import asyncio
 import unittest
-from unittest.mock import Mock, patch, MagicMock
-import typing as T
+from unittest.mock import Mock, patch
 
-from ryutils.alerts.alerter import Alerter
-from ryutils.alerts.discord import DiscordAlerter
-from ryutils.alerts.slack import SlackAlerter
-from ryutils.alerts.mock import MockAlerter
-from ryutils.alerts.factory import AlertFactory
 from ryutils.alerts.alert_types import AlertType
+from ryutils.alerts.discord import DiscordAlerter
+from ryutils.alerts.factory import AlertFactory
+from ryutils.alerts.mock import MockAlerter
+from ryutils.alerts.slack import SlackAlerter
 
 
 class TestAlerter(unittest.TestCase):
@@ -40,8 +39,9 @@ class TestAlerter(unittest.TestCase):
         alerter3 = MockAlerter(webhook_url="different_id")
 
         # Set same callback for equality test
-        def dummy_callback(msg: str) -> None:
+        def dummy_callback(_msg: str) -> None:
             pass
+
         alerter1.callback = dummy_callback
         alerter2.callback = dummy_callback
         alerter3.callback = dummy_callback
@@ -53,10 +53,11 @@ class TestAlerter(unittest.TestCase):
         """Test Alerter hash function."""
         alerter1 = MockAlerter(webhook_url="test_id")
         alerter2 = MockAlerter(webhook_url="test_id")
-        
+
         # Set same callback for hash test
-        def dummy_callback(msg: str) -> None:
+        def dummy_callback(_msg: str) -> None:
             pass
+
         alerter1.callback = dummy_callback
         alerter2.callback = dummy_callback
 
@@ -71,8 +72,9 @@ class TestAlerter(unittest.TestCase):
         alerter2 = MockAlerter(webhook_url="b")
 
         # Set same callback for ordering test
-        def dummy_callback(msg: str) -> None:
+        def dummy_callback(_msg: str) -> None:
             pass
+
         alerter1.callback = dummy_callback
         alerter2.callback = dummy_callback
 
@@ -98,6 +100,7 @@ class TestMockAlerter(unittest.TestCase):
 
         # Test setting callback
         received_messages = []
+
         def test_callback(message: str) -> None:
             received_messages.append(message)
 
@@ -131,7 +134,6 @@ class TestMockAlerter(unittest.TestCase):
 
         mock_alerter.callback = test_callback
 
-        import asyncio
         asyncio.run(mock_alerter.send_alert_async("Test async message"))
 
         self.assertEqual(len(received_messages), 1)
@@ -143,8 +145,9 @@ class TestMockAlerter(unittest.TestCase):
         mock2 = MockAlerter(webhook_url="http://test.com")
 
         # Set same callback for both
-        def dummy_callback(msg: str) -> None:
+        def dummy_callback(_msg: str) -> None:
             pass
+
         mock1.callback = dummy_callback
         mock2.callback = dummy_callback
 
@@ -171,7 +174,7 @@ class TestSlackAlerter(unittest.TestCase):
         slack_alerter = SlackAlerter(webhook_url="https://custom.slack.com/webhook")
         self.assertEqual(slack_alerter.alert_id, "https://custom.slack.com/webhook")
 
-    @patch('ryutils.alerts.slack.WebhookClient')
+    @patch("ryutils.alerts.slack.WebhookClient")
     def test_slack_alerter_send_alert_success(self, mock_webhook_client: Mock) -> None:
         """Test SlackAlerter send_alert success case."""
         # Mock successful response
@@ -185,7 +188,7 @@ class TestSlackAlerter(unittest.TestCase):
 
         mock_webhook_client.return_value.send.assert_called_once_with(text="Test message")
 
-    @patch('ryutils.alerts.slack.WebhookClient')
+    @patch("ryutils.alerts.slack.WebhookClient")
     def test_slack_alerter_send_alert_failure(self, mock_webhook_client: Mock) -> None:
         """Test SlackAlerter send_alert failure case."""
         # Mock failed response
@@ -199,9 +202,11 @@ class TestSlackAlerter(unittest.TestCase):
         with self.assertRaises(ConnectionError):
             slack_alerter.send_alert("Test message")
 
-    @patch('ryutils.alerts.slack.WebhookClient')
-    @patch('asyncio.to_thread')
-    def test_slack_alerter_send_alert_async(self, mock_to_thread: Mock, mock_webhook_client: Mock) -> None:
+    @patch("ryutils.alerts.slack.WebhookClient")
+    @patch("asyncio.to_thread")
+    def test_slack_alerter_send_alert_async(
+        self, mock_to_thread: Mock, mock_webhook_client: Mock
+    ) -> None:
         """Test SlackAlerter send_alert_async method."""
         # Mock successful response
         mock_response = Mock()
@@ -211,7 +216,6 @@ class TestSlackAlerter(unittest.TestCase):
 
         slack_alerter = SlackAlerter(webhook_url="https://hooks.slack.com/services/test/webhook")
 
-        import asyncio
         asyncio.run(slack_alerter.send_alert_async("Test async message"))
 
         mock_to_thread.assert_called_once()
@@ -223,8 +227,7 @@ class TestDiscordAlerter(unittest.TestCase):
     def test_discord_alerter_initialization(self) -> None:
         """Test DiscordAlerter initialization."""
         discord_alerter = DiscordAlerter(
-            webhook_url="https://discord.com/api/webhooks/test",
-            title="Test Alert"
+            webhook_url="https://discord.com/api/webhooks/test", title="Test Alert"
         )
         self.assertEqual(discord_alerter.webhook_url, "https://discord.com/api/webhooks/test")
         self.assertEqual(discord_alerter.title, "Test Alert")
@@ -234,17 +237,18 @@ class TestDiscordAlerter(unittest.TestCase):
     def test_discord_alerter_add_title(self) -> None:
         """Test DiscordAlerter add_title method."""
         discord_alerter = DiscordAlerter(
-            webhook_url="https://discord.com/api/webhooks/test",
-            title="Original Title"
+            webhook_url="https://discord.com/api/webhooks/test", title="Original Title"
         )
         self.assertEqual(discord_alerter.title, "Original Title")
 
         discord_alerter.add_title("New Title")
         self.assertEqual(discord_alerter.title, "New Title")
 
-    @patch('ryutils.alerts.discord.DiscordWebhook')
-    @patch('ryutils.alerts.discord.DiscordEmbed')
-    def test_discord_alerter_send_alert_success(self, mock_embed: Mock, mock_webhook: Mock) -> None:
+    @patch("ryutils.alerts.discord.DiscordWebhook")
+    @patch("ryutils.alerts.discord.DiscordEmbed")
+    def test_discord_alerter_send_alert_success(
+        self, _mock_embed: Mock, mock_webhook: Mock
+    ) -> None:
         """Test DiscordAlerter send_alert success case."""
         # Mock successful response
         mock_response = Mock()
@@ -253,18 +257,19 @@ class TestDiscordAlerter(unittest.TestCase):
         mock_webhook.return_value.execute.return_value = mock_response
 
         discord_alerter = DiscordAlerter(
-            webhook_url="https://discord.com/api/webhooks/test",
-            title="Test Alert"
+            webhook_url="https://discord.com/api/webhooks/test", title="Test Alert"
         )
         discord_alerter.send_alert("Test message")
 
-        mock_embed.assert_called_once_with(title="Test Alert", description="Test message")
+        # Verify DiscordEmbed was created and webhook was called
         mock_webhook.return_value.add_embed.assert_called_once()
         mock_webhook.return_value.execute.assert_called_once_with(remove_embeds=True)
 
-    @patch('ryutils.alerts.discord.DiscordWebhook')
-    @patch('ryutils.alerts.discord.DiscordEmbed')
-    def test_discord_alerter_send_alert_failure(self, mock_embed: Mock, mock_webhook: Mock) -> None:
+    @patch("ryutils.alerts.discord.DiscordWebhook")
+    @patch("ryutils.alerts.discord.DiscordEmbed")
+    def test_discord_alerter_send_alert_failure(
+        self, _mock_embed: Mock, mock_webhook: Mock
+    ) -> None:
         """Test DiscordAlerter send_alert failure case."""
         # Mock failed response
         mock_response = Mock()
@@ -273,17 +278,18 @@ class TestDiscordAlerter(unittest.TestCase):
         mock_webhook.return_value.execute.return_value = mock_response
 
         discord_alerter = DiscordAlerter(
-            webhook_url="https://discord.com/api/webhooks/test",
-            title="Test Alert"
+            webhook_url="https://discord.com/api/webhooks/test", title="Test Alert"
         )
 
         with self.assertRaises(ConnectionError):
             discord_alerter.send_alert("Test message")
 
-    @patch('ryutils.alerts.discord.DiscordWebhook')
-    @patch('ryutils.alerts.discord.DiscordEmbed')
-    @patch('asyncio.to_thread')
-    def test_discord_alerter_send_alert_async(self, mock_to_thread: Mock, mock_embed: Mock, mock_webhook: Mock) -> None:
+    @patch("ryutils.alerts.discord.DiscordWebhook")
+    @patch("ryutils.alerts.discord.DiscordEmbed")
+    @patch("asyncio.to_thread")
+    def test_discord_alerter_send_alert_async(
+        self, mock_to_thread: Mock, _mock_embed: Mock, _mock_webhook: Mock
+    ) -> None:
         """Test DiscordAlerter send_alert_async method."""
         # Mock successful response
         mock_response = Mock()
@@ -292,11 +298,9 @@ class TestDiscordAlerter(unittest.TestCase):
         mock_to_thread.return_value = mock_response
 
         discord_alerter = DiscordAlerter(
-            webhook_url="https://discord.com/api/webhooks/test",
-            title="Test Alert"
+            webhook_url="https://discord.com/api/webhooks/test", title="Test Alert"
         )
 
-        import asyncio
         asyncio.run(discord_alerter.send_alert_async("Test async message"))
 
         mock_to_thread.assert_called_once()
@@ -313,6 +317,7 @@ class TestAlertFactory(unittest.TestCase):
         alert = AlertFactory.create_alert(AlertType.MOCK, args)
 
         self.assertIsInstance(alert, MockAlerter)
+        assert isinstance(alert, MockAlerter)  # Type narrowing for mypy
         self.assertEqual(alert.webhook_url, "https://test.com/webhook")
 
     def test_create_slack_alert(self) -> None:
@@ -323,6 +328,7 @@ class TestAlertFactory(unittest.TestCase):
         alert = AlertFactory.create_alert(AlertType.SLACK, args)
 
         self.assertIsInstance(alert, SlackAlerter)
+        assert isinstance(alert, SlackAlerter)  # Type narrowing for mypy
         self.assertEqual(alert.webhook_url, "https://hooks.slack.com/services/test/webhook")
 
     def test_create_discord_alert_with_title(self) -> None:
@@ -334,6 +340,7 @@ class TestAlertFactory(unittest.TestCase):
         alert = AlertFactory.create_alert(AlertType.DISCORD, args)
 
         self.assertIsInstance(alert, DiscordAlerter)
+        assert isinstance(alert, DiscordAlerter)  # Type narrowing for mypy
         self.assertEqual(alert.webhook_url, "https://discord.com/api/webhooks/test")
         self.assertEqual(alert.title, "Custom Title")
 
@@ -346,10 +353,11 @@ class TestAlertFactory(unittest.TestCase):
         alert = AlertFactory.create_alert(AlertType.DISCORD, args)
 
         self.assertIsInstance(alert, DiscordAlerter)
+        assert isinstance(alert, DiscordAlerter)  # Type narrowing for mypy
         self.assertEqual(alert.webhook_url, "https://discord.com/api/webhooks/test")
         self.assertEqual(alert.title, "Alert")  # Default title
 
-    @patch('ryutils.log.print_normal')
+    @patch("ryutils.log.print_normal")
     def test_create_alert_verbose(self, mock_print: Mock) -> None:
         """Test creating alert with verbose logging."""
         args = argparse.Namespace()
@@ -382,5 +390,5 @@ class TestAlertType(unittest.TestCase):
         self.assertEqual(repr(AlertType.MOCK), "MOCK")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -23,13 +23,8 @@ class AlertFactory:
         # Handle different alert types with their specific parameters
         if alert_type == AlertType.DISCORD:
             # Discord requires both webhook_url and title
-            title = getattr(args, 'title', 'Alert')
-            return T.cast(Alerter, alert_class_type(
-                webhook_url=args.webhook_url,
-                title=title
-            ))
-        else:
-            # Slack and Mock only need webhook_url
-            return T.cast(Alerter, alert_class_type(
-                webhook_url=args.webhook_url
-            ))
+            title = getattr(args, "title", "Alert")
+            return T.cast(Alerter, alert_class_type(webhook_url=args.webhook_url, title=title))
+
+        # Slack and Mock only need webhook_url
+        return T.cast(Alerter, alert_class_type(webhook_url=args.webhook_url))
