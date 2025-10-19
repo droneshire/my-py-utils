@@ -28,24 +28,26 @@ class SlackAlerter(Alerter):
         except IndexError:
             return webhook_url
 
-    def send_alert(self, message: str) -> None:
+    def send_alert(self, message: str, title: str | None = None) -> None:
         """
         Sends an alert message to Slack.
 
         Args:
             message (str): The message to be sent.
+            title (str | None): Optional title for the alert (ignored for Slack).
 
         Raises:
             Exception: If the alert fails to be sent to Slack.
         """
         self._send_alert(message)
 
-    async def send_alert_async(self, message: str) -> None:
+    async def send_alert_async(self, message: str, title: str | None = None) -> None:
         """
         Sends an alert message to Slack asynchronously using the Slack SDK and aiohttp.
 
         Args:
             message (str): The message to be sent.
+            title (str | None): Optional title for the alert (ignored for Slack).
 
         Raises:
             Exception: If the alert fails to be sent to Slack.

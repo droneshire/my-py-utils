@@ -20,11 +20,5 @@ class AlertFactory:
         if verbose:
             log.print_normal(f"Attempting to create {alert_type} alerter")
 
-        # Handle different alert types with their specific parameters
-        if alert_type == AlertType.DISCORD:
-            # Discord requires both webhook_url and title
-            title = getattr(args, "title", "Alert")
-            return T.cast(Alerter, alert_class_type(webhook_url=args.webhook_url, title=title))
-
-        # Slack and Mock only need webhook_url
+        # All alerters now use the same constructor signature
         return T.cast(Alerter, alert_class_type(webhook_url=args.webhook_url))

@@ -226,23 +226,23 @@ class TestDiscordAlerter(unittest.TestCase):
 
     def test_discord_alerter_initialization(self) -> None:
         """Test DiscordAlerter initialization."""
-        discord_alerter = DiscordAlerter(
-            webhook_url="https://discord.com/api/webhooks/test", title="Test Alert"
-        )
+        discord_alerter = DiscordAlerter(webhook_url="https://discord.com/api/webhooks/test")
         self.assertEqual(discord_alerter.webhook_url, "https://discord.com/api/webhooks/test")
-        self.assertEqual(discord_alerter.title, "Test Alert")
         self.assertEqual(discord_alerter.TYPE, "Discord")
         self.assertEqual(discord_alerter.alert_id, "https://discord.com/api/webhooks/test")
 
-    def test_discord_alerter_add_title(self) -> None:
-        """Test DiscordAlerter add_title method."""
-        discord_alerter = DiscordAlerter(
-            webhook_url="https://discord.com/api/webhooks/test", title="Original Title"
-        )
-        self.assertEqual(discord_alerter.title, "Original Title")
+    def test_discord_alerter_send_alert_with_title(self) -> None:
+        """Test DiscordAlerter send_alert with custom title."""
+        discord_alerter = DiscordAlerter(webhook_url="https://discord.com/api/webhooks/test")
 
-        discord_alerter.add_title("New Title")
-        self.assertEqual(discord_alerter.title, "New Title")
+        # Test that we can send alerts with custom titles
+        # This is more of a smoke test since we can't easily test the embed creation
+        # without mocking, but we can verify the method accepts the title parameter
+        try:
+            discord_alerter.send_alert("Test message", title="Custom Title")
+        except ConnectionError:
+            # Expected since we don't have a real webhook
+            pass
 
     @patch("ryutils.alerts.discord.DiscordWebhook")
     @patch("ryutils.alerts.discord.DiscordEmbed")
@@ -256,10 +256,8 @@ class TestDiscordAlerter(unittest.TestCase):
         mock_response.text = "success"
         mock_webhook.return_value.execute.return_value = mock_response
 
-        discord_alerter = DiscordAlerter(
-            webhook_url="https://discord.com/api/webhooks/test", title="Test Alert"
-        )
-        discord_alerter.send_alert("Test message")
+        discord_alerter = DiscordAlerter(webhook_url="https://discord.com/api/webhooks/test")
+        discord_alerter.send_alert("Test message", title="Custom Title")
 
         # Verify DiscordEmbed was created and webhook was called
         mock_webhook.return_value.add_embed.assert_called_once()
@@ -277,12 +275,10 @@ class TestDiscordAlerter(unittest.TestCase):
         mock_response.text = "error"
         mock_webhook.return_value.execute.return_value = mock_response
 
-        discord_alerter = DiscordAlerter(
-            webhook_url="https://discord.com/api/webhooks/test", title="Test Alert"
-        )
+        discord_alerter = DiscordAlerter(webhook_url="https://discord.com/api/webhooks/test")
 
         with self.assertRaises(ConnectionError):
-            discord_alerter.send_alert("Test message")
+            discord_alerter.send_alert("Test message", title="Custom Title")
 
     @patch("ryutils.alerts.discord.DiscordWebhook")
     @patch("ryutils.alerts.discord.DiscordEmbed")
@@ -297,11 +293,9 @@ class TestDiscordAlerter(unittest.TestCase):
         mock_response.text = "success"
         mock_to_thread.return_value = mock_response
 
-        discord_alerter = DiscordAlerter(
-            webhook_url="https://discord.com/api/webhooks/test", title="Test Alert"
-        )
+        discord_alerter = DiscordAlerter(webhook_url="https://discord.com/api/webhooks/test")
 
-        asyncio.run(discord_alerter.send_alert_async("Test async message"))
+        asyncio.run(discord_alerter.send_alert_async("Test async message", title="Custom Title"))
 
         mock_to_thread.assert_called_once()
 
@@ -331,31 +325,16 @@ class TestAlertFactory(unittest.TestCase):
         assert isinstance(alert, SlackAlerter)  # Type narrowing for mypy
         self.assertEqual(alert.webhook_url, "https://hooks.slack.com/services/test/webhook")
 
-    def test_create_discord_alert_with_title(self) -> None:
-        """Test creating DiscordAlerter via factory with title."""
+    def test_create_discord_alert(self) -> None:
+        """Test creating DiscordAlerter via factory."""
         args = argparse.Namespace()
         args.webhook_url = "https://discord.com/api/webhooks/test"
-        args.title = "Custom Title"
 
         alert = AlertFactory.create_alert(AlertType.DISCORD, args)
 
         self.assertIsInstance(alert, DiscordAlerter)
         assert isinstance(alert, DiscordAlerter)  # Type narrowing for mypy
         self.assertEqual(alert.webhook_url, "https://discord.com/api/webhooks/test")
-        self.assertEqual(alert.title, "Custom Title")
-
-    def test_create_discord_alert_without_title(self) -> None:
-        """Test creating DiscordAlerter via factory without title."""
-        args = argparse.Namespace()
-        args.webhook_url = "https://discord.com/api/webhooks/test"
-        # No title attribute
-
-        alert = AlertFactory.create_alert(AlertType.DISCORD, args)
-
-        self.assertIsInstance(alert, DiscordAlerter)
-        assert isinstance(alert, DiscordAlerter)  # Type narrowing for mypy
-        self.assertEqual(alert.webhook_url, "https://discord.com/api/webhooks/test")
-        self.assertEqual(alert.title, "Alert")  # Default title
 
     @patch("ryutils.log.print_normal")
     def test_create_alert_verbose(self, mock_print: Mock) -> None:

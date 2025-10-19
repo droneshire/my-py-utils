@@ -19,13 +19,13 @@ class Alerter(abc.ABC):
         self.TYPE = alerter_type
 
     @abc.abstractmethod
-    def send_alert(self, message: str) -> None:
+    def send_alert(self, message: str, title: str | None = None) -> None:
         """
         Sends an alert message to the specified recipients.
 
         Args:
             message (str): The alert message to send.
-            recipients (List[str]): The list of recipients to send the alert to.
+            title (str | None): Optional title for the alert.
 
         Returns:
             None
@@ -33,13 +33,13 @@ class Alerter(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    async def send_alert_async(self, message: str) -> None:
+    async def send_alert_async(self, message: str, title: str | None = None) -> None:
         """
         Sends an alert message to the specified recipients.
 
         Args:
             message (str): The alert message to send.
-            recipients (List[str]): The list of recipients to send the alert to.
+            title (str | None): Optional title for the alert.
 
         Returns:
             None

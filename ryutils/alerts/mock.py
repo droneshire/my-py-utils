@@ -25,8 +25,22 @@ class MockAlerter(Alerter):
     def callback(self, callback: T.Callable[[str], None]) -> None:
         self._callback = callback
 
-    def send_alert(self, message: str) -> None:
+    def send_alert(self, message: str, title: str | None = None) -> None:
+        """
+        Sends an alert message using the callback.
+
+        Args:
+            message (str): The message to be sent.
+            title (str | None): Optional title for the alert (ignored for Mock).
+        """
         self.callback(message)
 
-    async def send_alert_async(self, message: str) -> None:
+    async def send_alert_async(self, message: str, title: str | None = None) -> None:
+        """
+        Sends an alert message using the callback.
+
+        Args:
+            message (str): The message to be sent.
+            title (str | None): Optional title for the alert (ignored for Mock).
+        """
         self.send_alert(message)
