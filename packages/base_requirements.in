@@ -1,12 +1,10 @@
-discord_webhook>=1.4.1
+discord_webhook
 memory_profiler
 paramiko
 psutil
-pyshorteners>=1.0.1
-python-telegram-bot>=21.0.1
-pytz>=2024.1
-slack_sdk>=3.36.0
-yagmail>=0.15.293
+pyshorteners
+pytz
+slack_sdk
 
 types-psutil
 types-pytz
