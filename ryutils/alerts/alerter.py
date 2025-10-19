@@ -14,10 +14,9 @@ class Alerter(abc.ABC):
     Alerters are classes that send alerts to users.
     """
 
-    TYPE = "Alerter"
-
-    def __init__(self, alert_id: str) -> None:
+    def __init__(self, alert_id: str, alerter_type: str = "Alerter") -> None:
         self.alert_id = alert_id
+        self.TYPE = alerter_type
 
     @abc.abstractmethod
     def send_alert(self, message: str) -> None:

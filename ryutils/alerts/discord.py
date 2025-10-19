@@ -3,19 +3,25 @@ Alert module for Discord
 """
 
 import asyncio
+from dataclasses import dataclass
 
 from discord_webhook import DiscordEmbed, DiscordWebhook
 
 from ryutils.alerts.alerter import Alerter
 
 
+@dataclass
 class DiscordAlerter(Alerter):
-    TYPE = "Discord"
+    webhook_url: str
+    title: str
 
-    def __init__(self, webhook_url: str, title: str) -> None:
-        super().__init__(webhook_url)
+    def __post_init__(self) -> None:
+        # Call parent constructor
+        super().__init__(self.webhook_url, "Discord")
+        self.webhook = DiscordWebhook(url=self.webhook_url)
+
+    def add_title(self, title: str) -> None:
         self.title = title
-        self.webhook = DiscordWebhook(url=webhook_url)
 
     def send_alert(self, message: str) -> None:
         """

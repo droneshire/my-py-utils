@@ -3,24 +3,28 @@ Alert module for Slack
 """
 
 import asyncio
+from dataclasses import dataclass
 
 from slack_sdk.webhook import WebhookClient
 
 from ryutils.alerts.alerter import Alerter
 
 
+@dataclass
 class SlackAlerter(Alerter):
-    TYPE = "Slack"
-    BASE_URL = "https://hooks.slack.com/services/"
+    webhook_url: str
 
-    def __init__(self, webhook_url: str) -> None:
-        alert_id = self._get_id(webhook_url)
-        super().__init__(alert_id)
-        self.webhook = WebhookClient(webhook_url)
+    def __post_init__(self) -> None:
+        # Call parent constructor
+        super().__init__(self.webhook_url, "Slack")
+        self.webhook = WebhookClient(self.webhook_url)
+        # Set alert_id from webhook_url
+        self.alert_id = self._get_id(self.webhook_url)
 
     def _get_id(self, webhook_url: str) -> str:
+        BASE_URL = "https://hooks.slack.com/services/"
         try:
-            return webhook_url.split(self.BASE_URL)[1]
+            return webhook_url.split(BASE_URL)[1]
         except IndexError:
             return webhook_url
 

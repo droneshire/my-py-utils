@@ -3,17 +3,19 @@ Dummy class for testing purposes.
 """
 
 import typing as T
+from dataclasses import dataclass, field
 
 from ryutils.alerts.alerter import Alerter
 
 
+@dataclass
 class MockAlerter(Alerter):
-    TYPE = "Mock"
+    webhook_url: str
+    _callback: T.Callable[[str], None] = field(default_factory=lambda: lambda _: None)
 
-    def __init__(self, webhook_url: str) -> None:
-        super().__init__(webhook_url)
-        self.webhook_url = webhook_url
-        self._callback: T.Callable[[str], None] = lambda _: None
+    def __post_init__(self) -> None:
+        # Call parent constructor
+        super().__init__(self.webhook_url, "Mock")
 
     @property
     def callback(self) -> T.Callable[[str], None]:
