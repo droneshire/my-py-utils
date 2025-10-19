@@ -100,7 +100,7 @@ class RequestsHelper:
 
     def _make_request_with_retry(self, method: str, url: str, **kwargs: Any) -> requests.Response:
         """Make a request with retry logic and better error handling."""
-        last_exception = None
+        last_exception: Optional[requests.exceptions.RequestException] = None
 
         for attempt in range(self.max_retries + 1):
             try:
@@ -152,7 +152,9 @@ class RequestsHelper:
                     )
 
         # If we get here, all retries failed
-        raise last_exception  # type: ignore
+        if last_exception is not None:
+            raise last_exception
+        raise requests.exceptions.RequestException("All retries failed")
 
     def log_request_info(self, json_data: Dict[str, Any]) -> None:
         if not self.log_requests:

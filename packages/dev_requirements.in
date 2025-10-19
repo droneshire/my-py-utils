@@ -6,3 +6,8 @@ pylint
 pytest
 coverage
 setuptools
+
+# Type stubs
+types-requests
+types-setuptools
+types-paramiko
