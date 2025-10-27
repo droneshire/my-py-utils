@@ -48,7 +48,9 @@ class Verbose:
         parser: argparse.ArgumentParser,
         verbose_types: T.Optional[T.List[str]] = None,
     ) -> None:
-        verbose_group = parser.add_argument_group("Verbose Options")
+        verbose_group = parser.add_argument_group(
+            "Verbose Options", description="Control verbosity levels for different components"
+        )
         verbose_group.add_argument("--verbose", action="store_true", help="Enable verbose mode")
 
         all_verbose_types = Verbose.DEFAULT_TYPES.copy()
@@ -56,7 +58,6 @@ class Verbose:
             all_verbose_types.extend(verbose_types)
 
         for verbose_type in all_verbose_types:
-            print(f"Adding verbose type: {verbose_type}")
             verbose_group.add_argument(
                 f"--{verbose_type}-verbose",
                 action="store_true",
