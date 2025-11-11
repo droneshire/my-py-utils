@@ -119,7 +119,7 @@ class RequestsHelper:
                     delay = self.retry_delay * (2**attempt)  # Exponential backoff
                     log.print_warn(
                         f"Request timed out, retrying in {delay:.1f}s... "
-                        f"(attempt {attempt + 1}/{self.max_retries + 1})"
+                        f"(attempt {attempt + 1}/{self.max_retries + 1}) {last_exception}"
                     )
                     time.sleep(delay)
                 else:
@@ -131,7 +131,7 @@ class RequestsHelper:
                     delay = self.retry_delay * (2**attempt)
                     log.print_warn(
                         f"Connection error, retrying in {delay:.1f}s... "
-                        f"(attempt {attempt + 1}/{self.max_retries + 1})"
+                        f"(attempt {attempt + 1}/{self.max_retries + 1}) {last_exception}"
                     )
                     time.sleep(delay)
                 else:
@@ -143,7 +143,7 @@ class RequestsHelper:
                     delay = self.retry_delay * (2**attempt)
                     log.print_warn(
                         f"Request failed, retrying in {delay:.1f}s... "
-                        f"(attempt {attempt + 1}/{self.max_retries + 1})"
+                        f"(attempt {attempt + 1}/{self.max_retries + 1}) {last_exception}"
                     )
                     time.sleep(delay)
                 else:
