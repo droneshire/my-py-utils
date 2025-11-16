@@ -11,14 +11,14 @@ def snake_to_camel(str_in: str) -> str:
     return "".join([t.title() for t in str_in.split("_")])
 
 
-def dict_keys_camel_to_snake_deep(dict_in) -> T.Any:
+def dict_keys_camel_to_snake_deep(dict_in: T.Dict[str, T.Any]) -> T.Dict[str, T.Any]:
     # recursively convert dict keys from camelCase to snake_case
     if isinstance(dict_in, dict):
         dict_in = {camel_to_snake(k): dict_keys_camel_to_snake_deep(v) for k, v in dict_in.items()}
     return dict_in
 
 
-def dict_keys_snake_to_camel_deep(dict_in) -> T.Any:
+def dict_keys_snake_to_camel_deep(dict_in: T.Dict[str, T.Any]) -> T.Dict[str, T.Any]:
     # recursively convert dict keys from snake_case to camelCase
     if isinstance(dict_in, dict):
         dict_in = {snake_to_camel(k): dict_keys_snake_to_camel_deep(v) for k, v in dict_in.items()}

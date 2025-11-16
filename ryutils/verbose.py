@@ -12,6 +12,7 @@ class Verbose:
         "requests_response",
         "request_cache",
         "mitmproxy",
+        "firebase",
     ]
     TYPES: T.List[str] = []
 

@@ -10,7 +10,7 @@ from pathlib import Path
 
 _DEFAULT_DOWNSAMPLE_COUNT = 20
 _ALWAYS_PRINT = False
-_DOWNSAMPLER: T.Dict[str, T.Dict[int, int]] = {}
+_DOWNSAMPLER: T.Dict[str, T.Dict[str, int]] = {}
 _DOWNSAMPLE_COUNT = _DEFAULT_DOWNSAMPLE_COUNT
 _CALLBACK = None
 _CALLBACK_LEVEL = logging.WARNING
@@ -142,7 +142,7 @@ def setup(
     use_multihandler: bool = True,
     callback: T.Optional[T.Callable] = None,
     callback_level: int = logging.WARNING,
-):
+) -> None:
     global _ALWAYS_PRINT  # pylint: disable=global-statement
     global _DOWNSAMPLE_COUNT  # pylint: disable=global-statement
     global _CALLBACK  # pylint: disable=global-statement
@@ -187,7 +187,7 @@ def make_formatter_printer(
 ) -> T.Callable:
     logger = logging.getLogger(__name__)
 
-    def formatter(message, *args, **kwargs):
+    def formatter(message: T.Any, *args: T.Any, **kwargs: T.Any) -> str:
         message = str(message)
 
         if args or kwargs:
@@ -208,11 +208,13 @@ def make_formatter_printer(
             return str(color + formatted_text + Colors.ENDC.value)
 
         if sys.stdout.encoding is not None:
-            return formatted_text.encode("utf-8").decode(sys.stdout.encoding, errors="ignore")
+            return T.cast(
+                str, formatted_text.encode("utf-8").decode(sys.stdout.encoding, errors="ignore")
+            )
 
-        return formatted_text
+        return T.cast(str, formatted_text)
 
-    def printer(message, *args, **kwargs):
+    def printer(message: T.Any, *args: T.Any, **kwargs: T.Any) -> None:
         is_logger_in_use = logging.getLogger().hasHandlers()
 
         downsample_val = get_downsample_count() if downsample else 1

@@ -11,7 +11,9 @@ from ryutils import log
 
 
 class CsvLogger:
-    def __init__(self, csv_file: str, header: T.List[str], dry_run=False, verbose=False) -> None:
+    def __init__(
+        self, csv_file: str, header: T.List[str], dry_run: bool = False, verbose: bool = False
+    ) -> None:
         self.csv_file = csv_file
         self.header = header
         self.col_map = {col.lower(): i for i, col in enumerate(header)}
@@ -38,7 +40,7 @@ class CsvLogger:
                     pass
             csv_writer.writerow(row)
 
-    def read(self) -> T.List[T.List[T.Any]]:
+    def read(self) -> list[list[T.Any]]:
         if not os.path.isfile(self.csv_file):
             return []
 
