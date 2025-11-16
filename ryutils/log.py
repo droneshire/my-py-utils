@@ -12,7 +12,7 @@ _DEFAULT_DOWNSAMPLE_COUNT = 20
 _ALWAYS_PRINT = False
 _DOWNSAMPLER: T.Dict[str, T.Dict[str, int]] = {}
 _DOWNSAMPLE_COUNT = _DEFAULT_DOWNSAMPLE_COUNT
-_CALLBACK = None
+_CALLBACK: T.Optional[T.Callable[[str], None]] = None
 _CALLBACK_LEVEL = logging.WARNING
 
 
@@ -55,10 +55,20 @@ class MultiHandler(logging.Handler):
         finally:
             self.release()
 
+    def close(self) -> None:
+        """Close all open file handles."""
+        self.acquire()
+        try:
+            for file_descriptor in self.files.values():
+                file_descriptor.close()
+            self.files.clear()
+        finally:
+            self.release()
+        super().close()
+
     def _get_or_open(self, key: str) -> T.Optional[T.TextIO]:
         "Get the file pointer for the given key, or else open the file"
         self.acquire()
-        file_descriptor: T.Optional[T.TextIO] = None
         try:
             if key in self.files:
                 return self.files[key]
@@ -77,15 +87,13 @@ class MultiHandler(logging.Handler):
         finally:
             self.release()
 
-        return file_descriptor
-
     def emit(self, record: logging.LogRecord) -> None:
         # No lock here; following code for StreamHandler and FileHandler
         try:
             name = record.threadName
             if name is None:
                 return
-            if any(n for n in self.block_list_prefixes if name.startswith(n)):
+            if any(name.startswith(prefix) for prefix in self.block_list_prefixes):
                 return
             file_descriptor = self._get_or_open(name)
             if file_descriptor is None:
@@ -125,7 +133,7 @@ def get_log_dir_name(log_dir: str) -> str:
 
 
 def update_callback(
-    callback: T.Optional[T.Callable], callback_level: int = logging.WARNING
+    callback: T.Optional[T.Callable[[str], None]], callback_level: int = logging.WARNING
 ) -> None:
     global _CALLBACK  # pylint: disable=global-statement
     global _CALLBACK_LEVEL  # pylint: disable=global-statement
@@ -140,7 +148,7 @@ def setup(
     always_print: bool = False,
     downsample_count: int = 1,
     use_multihandler: bool = True,
-    callback: T.Optional[T.Callable] = None,
+    callback: T.Optional[T.Callable[[str], None]] = None,
     callback_level: int = logging.WARNING,
 ) -> None:
     global _ALWAYS_PRINT  # pylint: disable=global-statement
@@ -224,32 +232,45 @@ def make_formatter_printer(
         # obtain the backtrace of the caller to use as the key
         frame = sys._getframe(1)  # pylint: disable=protected-access
         key = frame.f_code.co_filename + frame.f_code.co_name + str(frame.f_lineno) + formatted_text
-        if key not in _DOWNSAMPLER and downsample_val > 1:
-            # set the count to downsample_val - 1 so that the first message is always printed
-            _DOWNSAMPLER[key] = {"downsample": downsample_val, "count": downsample_val - 1}
 
-        if _ALWAYS_PRINT or (
-            key in _DOWNSAMPLER
-            and _DOWNSAMPLER[key]["count"] % _DOWNSAMPLER[key]["downsample"] == 0
+        should_print = False
+        if downsample_val > 1:
+            if key not in _DOWNSAMPLER:
+                # set the count to downsample_val - 1 so that the first message is always printed
+                _DOWNSAMPLER[key] = {"downsample": downsample_val, "count": downsample_val - 1}
+
+            # Increment the count
+            _DOWNSAMPLER[key]["count"] += 1
+
+            # Check if we should print based on downsampling
+            if _DOWNSAMPLER[key]["count"] % _DOWNSAMPLER[key]["downsample"] == 0:
+                should_print = True
+        else:
+            should_print = True
+
+        # Print if always_print, should_print, or logger not in use or enabled
+        if (
+            _ALWAYS_PRINT
+            or should_print
+            or (not is_logger_in_use or logging.getLogger().isEnabledFor(log_level))
         ):
             print(formatted_text)
-        elif not is_logger_in_use or logging.getLogger().isEnabledFor(log_level):
-            print(formatted_text)
 
+        # Log to logger if in use
         if is_logger_in_use:
-            if log_level == logging.DEBUG:
-                logger.debug(message)
-            elif log_level == logging.WARNING:
-                logger.warning(message)
-            elif log_level == logging.ERROR:
-                logger.error(message)
-            elif log_level == logging.INFO:
-                logger.info(message)
-            elif log_level == logging.CRITICAL:
-                logger.critical(message)
+            log_methods = {
+                logging.DEBUG: logger.debug,
+                logging.WARNING: logger.warning,
+                logging.ERROR: logger.error,
+                logging.INFO: logger.info,
+                logging.CRITICAL: logger.critical,
+            }
+            log_method = log_methods.get(log_level)
+            if log_method:
+                log_method(message)
 
         if _CALLBACK and log_level >= _CALLBACK_LEVEL:
-            _CALLBACK(message)
+            _CALLBACK(formatted_text)
 
         sys.stdout.flush()
 
@@ -261,17 +282,22 @@ def make_formatter_printer(
 
 def tar_logs(log_dir: str, tarname: str, remove_after: bool = False, max_tars: int = 5) -> None:
     """Tar the logs directory to a file called logs.tar.gz"""
-    if not tarname.endswith(".tar.gz"):
-        tarname += ".tar.gz"
+    # Extract base name without extension
+    if tarname.endswith(".tar.gz"):
+        base_name = tarname[:-7]  # Remove .tar.gz
+    else:
+        base_name = tarname
+        tarname = f"{base_name}.tar.gz"
 
     # if there are other tar names, increment the name by 1
     tar_index = 1
+    original_tarname = tarname
     while os.path.exists(os.path.join(log_dir, tarname)):
-        tarname = tarname.replace(".tar.gz", "")
-        tarname = tarname.split(".")[0]
-        tarname = tarname + f".{tar_index}.tar.gz"
+        tarname = f"{base_name}.{tar_index}.tar.gz"
         tar_index += 1
         if tar_index > max_tars:
+            # If we've exceeded max_tars, use the original name and overwrite
+            tarname = original_tarname
             break
 
     logs_dir = os.path.join(log_dir, "logs")
