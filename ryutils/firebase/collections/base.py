@@ -361,6 +361,7 @@ class FirebaseCollection(abc.ABC):
         doc_id: str,
         old_doc: T.Any,
         new_doc: T.Any,
+        merge: bool = False,
     ) -> None:
         """
         Upload document to Firestore if there are differences.
@@ -370,6 +371,7 @@ class FirebaseCollection(abc.ABC):
             doc_id: Document ID
             old_doc: Old document data
             new_doc: New document data
+            merge: Whether to merge with existing document (default: False)
         """
         diff = deepdiff.DeepDiff(old_doc, new_doc, ignore_order=True)
         if not diff:
@@ -383,7 +385,7 @@ class FirebaseCollection(abc.ABC):
         collection_ref = self.collection_refs[collection_name]
 
         try:
-            collection_ref.document(doc_id).set(doc_dict_firestore)
+            collection_ref.document(doc_id).set(doc_dict_firestore, merge=merge)
         except KeyboardInterrupt as exc:
             raise KeyboardInterrupt from exc
         except Exception as e:  # pylint: disable=broad-except
