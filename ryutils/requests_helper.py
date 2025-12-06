@@ -162,7 +162,17 @@ class RequestsHelper:
 
         json_data["cookies"] = dict(self.session.cookies)
 
-        if not self.log_file.exists() or self.fresh_log:
+        # If fresh_log is True, delete existing file and create a new one (only on first call)
+        # After creating the fresh file, reset fresh_log to False so subsequent
+        # requests append to the same file
+        if self.fresh_log:
+            # Delete existing file if it exists to start fresh
+            if self.log_file.exists():
+                self.log_file.unlink()
+            # Reset fresh_log after deleting so subsequent requests append
+            self.fresh_log = False
+
+        if not self.log_file.exists():
             # Create new log file with initial entry
             timestamp = datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M:%S")
             log_data = [{timestamp: json_data}]

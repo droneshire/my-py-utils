@@ -3,6 +3,7 @@
 Tests for request caching functionality.
 """
 
+import json
 import tempfile
 import time
 import unittest
@@ -618,6 +619,122 @@ class RequestsHelperCacheTest(unittest.TestCase):
         self.assertIsNone(self.requests_helper.cache.get("GET", "/api/events"))
         self.assertIsNone(self.requests_helper.cache.get("POST", "/api/events"))
         self.assertIsNone(self.requests_helper.cache.get("PUT", "/api/events"))
+
+
+class RequestsHelperLoggingTest(unittest.TestCase):
+    """Test RequestsHelper logging functionality, especially fresh_log behavior."""
+
+    def setUp(self) -> None:
+        """Set up test fixtures."""
+        self.temp_dir = tempfile.mkdtemp()
+        self.log_file = Path(self.temp_dir) / "test_requests_log.json"
+        self.verbose = Verbose()
+
+    def tearDown(self) -> None:
+        """Clean up test fixtures."""
+        if self.log_file.exists():
+            self.log_file.unlink()
+        Path(self.temp_dir).rmdir()
+
+    @patch.object(RequestsHelper, "_make_request_with_retry")
+    def test_fresh_log_resets_after_first_request(self, mock_request: Mock) -> None:
+        """Test that fresh_log=True resets after first request.
+
+        This allows subsequent requests to append. This test would have failed
+        before the fix because fresh_log never reset, causing each request to
+        overwrite the log file instead of appending.
+        """
+        # Create a pre-existing log file to verify it gets deleted
+        existing_data = [{"2024-01-01 00:00:00": {"OLD": "data"}}]
+        with open(self.log_file, "w", encoding="utf-8") as f:
+            json.dump(existing_data, f, indent=2)
+
+        # Create RequestsHelper with fresh_log=True and log_requests=True
+        requests_helper = RequestsHelper(
+            log_file=self.log_file,
+            verbose=self.verbose,
+            base_url="https://api.example.com",
+            log_requests=True,
+            fresh_log=True,
+        )
+
+        # Mock response
+        mock_response = Mock()
+        mock_response.json.return_value = {"test": "data"}
+        mock_response.raise_for_status.return_value = None
+        mock_request.return_value = mock_response
+
+        # Make first request - should delete existing file and create fresh one
+        requests_helper.get("/test1")
+        self.assertTrue(self.log_file.exists())
+
+        # Verify fresh_log was reset
+        self.assertFalse(
+            requests_helper.fresh_log, "fresh_log should be reset to False after first request"
+        )
+
+        # Make second request - should append, not overwrite
+        requests_helper.get("/test2")
+
+        # Make third request - should also append
+        requests_helper.get("/test3")
+
+        # Verify all three requests are in the log file
+        with open(self.log_file, "r", encoding="utf-8") as f:
+            log_data = json.load(f)
+
+        # Should have 3 entries (one for each request)
+        self.assertEqual(len(log_data), 3, "Log file should contain 3 entries after 3 requests")
+
+        # Verify the old data is gone (fresh log deleted it)
+        first_entry = log_data[0]
+        self.assertNotIn("OLD", str(first_entry), "Old log data should have been deleted")
+
+        # Verify all three requests are logged
+        log_str = json.dumps(log_data)
+        self.assertIn("/test1", log_str, "First request should be in log")
+        self.assertIn("/test2", log_str, "Second request should be in log")
+        self.assertIn("/test3", log_str, "Third request should be in log")
+
+        # Verify each entry has the expected structure
+        for entry in log_data:
+            self.assertIsInstance(entry, dict, "Each log entry should be a dictionary")
+            # Each entry should have a timestamp key
+            self.assertEqual(len(entry), 1, "Each entry should have one timestamp key")
+            timestamp = list(entry.keys())[0]
+            self.assertIn("GET", str(entry[timestamp]), "Each entry should contain request method")
+
+    @patch.object(RequestsHelper, "_make_request_with_retry")
+    def test_fresh_log_without_existing_file(self, mock_request: Mock) -> None:
+        """Test that fresh_log=True works correctly when no existing file exists."""
+        # Create RequestsHelper with fresh_log=True and log_requests=True
+        requests_helper = RequestsHelper(
+            log_file=self.log_file,
+            verbose=self.verbose,
+            base_url="https://api.example.com",
+            log_requests=True,
+            fresh_log=True,
+        )
+
+        # Mock response
+        mock_response = Mock()
+        mock_response.json.return_value = {"test": "data"}
+        mock_response.raise_for_status.return_value = None
+        mock_request.return_value = mock_response
+
+        # Make first request - should create new file
+        requests_helper.get("/test1")
+        self.assertTrue(self.log_file.exists())
+        self.assertFalse(requests_helper.fresh_log, "fresh_log should be reset after first request")
+
+        # Make second request - should append
+        requests_helper.get("/test2")
+
+        # Verify both requests are in the log
+        with open(self.log_file, "r", encoding="utf-8") as f:
+            log_data = json.load(f)
+
+        self.assertEqual(len(log_data), 2, "Log file should contain 2 entries after 2 requests")
 
 
 if __name__ == "__main__":
