@@ -19,8 +19,8 @@ from ryutils.verbose import Verbose
 def create_retry_strategy() -> Retry:
     """Create a retry strategy with exponential backoff."""
     return Retry(
-        total=3,  # Total number of retries
-        backoff_factor=1,  # Base delay between retries (1, 2, 4 seconds)
+        total=2,  # Total number of retries
+        backoff_factor=1,  # Base delay between retries (1, 2 seconds)
         status_forcelist=[408, 429, 500, 502, 503, 504],  # Retry on these status codes
         allowed_methods=["GET", "POST", "PUT", "DELETE"],  # Allow retries on all methods
         respect_retry_after_header=True,  # Respect Retry-After headers
@@ -98,6 +98,7 @@ class RequestsHelper:
                 verbose=self.verbose,
             )
 
+    # pylint: disable=too-many-branches
     def _make_request_with_retry(self, method: str, url: str, **kwargs: Any) -> requests.Response:
         """Make a request with retry logic and better error handling."""
         last_exception: Optional[requests.exceptions.RequestException] = None
@@ -139,6 +140,7 @@ class RequestsHelper:
 
             except requests.exceptions.RequestException as e:
                 last_exception = e
+
                 if attempt < self.max_retries:
                     delay = self.retry_delay * (2**attempt)
                     log.print_warn(
@@ -147,8 +149,20 @@ class RequestsHelper:
                     )
                     time.sleep(delay)
                 else:
+                    # Extract response data if available (e.g., from HTTPError)
+                    # Only build full error message after all retries exhausted
+                    response_data = None
+                    if hasattr(e, "response") and e.response is not None:
+                        try:
+                            response_data = e.response.json()
+                        except (ValueError, AttributeError):
+                            response_data = getattr(e.response, "text", None)
+
+                    error_msg = str(last_exception)
+                    if response_data is not None:
+                        error_msg += f"\nResponse data: {response_data}"
                     log.print_fail(
-                        f"Request failed after {self.max_retries + 1} attempts: {last_exception}"
+                        f"Request failed after {self.max_retries + 1} attempts: {error_msg}"
                     )
 
         # If we get here, all retries failed
