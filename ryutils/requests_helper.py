@@ -230,6 +230,7 @@ class RequestsHelper:
                 return cache_data
 
         response = None
+        error_message = None
         try:
             response = self._make_request_with_retry("GET", url, params=params)
 
@@ -242,17 +243,22 @@ class RequestsHelper:
                 err = response.json() if response is not None else str(e)
             except (ValueError, AttributeError):
                 err = getattr(response, "text", str(e)) if response is not None else str(e)
+            error_message = err
             log.print_fail(f"Error getting from {url}: {err}")
             e.args = (*e.args, err)
             raise e
         except Exception as e:
+            error_message = str(e)
             log.print_fail(f"Unexpected error getting from {url}: {e}")
             raise e
         finally:
-            try:
-                response_final = response.json() if response is not None else ""
-            except (ValueError, AttributeError):
-                response_final = getattr(response, "text", "") if response is not None else ""
+            if error_message is not None:
+                response_final = error_message
+            else:
+                try:
+                    response_final = response.json() if response is not None else ""
+                except (ValueError, AttributeError):
+                    response_final = getattr(response, "text", "") if response is not None else ""
             self.log_request_info(
                 {
                     "GET": {
@@ -288,6 +294,7 @@ class RequestsHelper:
             return {}
 
         response = None
+        error_message = None
         try:
             response = self._make_request_with_retry("PUT", url, json=json_dict, params=params)
 
@@ -302,17 +309,22 @@ class RequestsHelper:
                 response_final = (
                     getattr(response, "text", str(e)) if response is not None else str(e)
                 )
+            error_message = response_final
             log.print_fail(f"Error putting to {url}: {response_final}")
             e.args = (*e.args, response_final)
             raise e
         except Exception as e:
+            error_message = str(e)
             log.print_fail(f"Unexpected error putting to {url}: {e}")
             raise e
         finally:
-            try:
-                response_final = response.json() if response is not None else ""
-            except (ValueError, AttributeError):
-                response_final = getattr(response, "text", "") if response is not None else ""
+            if error_message is not None:
+                response_final = error_message
+            else:
+                try:
+                    response_final = response.json() if response is not None else ""
+                except (ValueError, AttributeError):
+                    response_final = getattr(response, "text", "") if response is not None else ""
             self.log_request_info(
                 {
                     "PUT": {
@@ -350,6 +362,7 @@ class RequestsHelper:
             return {}
 
         response = None
+        error_message = None
         try:
             response = self._make_request_with_retry("POST", url, json=json_dict, params=params)
 
@@ -364,17 +377,22 @@ class RequestsHelper:
                 response_final = (
                     getattr(response, "text", str(e)) if response is not None else str(e)
                 )
+            error_message = response_final
             log.print_fail(f"Error posting to {url}: {response_final}")
             e.args = (*e.args, response_final)
             raise e
         except Exception as e:
+            error_message = str(e)
             log.print_fail(f"Unexpected error posting to {url}: {e}")
             raise e
         finally:
-            try:
-                response_final = response.json() if response is not None else ""
-            except (ValueError, AttributeError):
-                response_final = getattr(response, "text", "") if response is not None else ""
+            if error_message is not None:
+                response_final = error_message
+            else:
+                try:
+                    response_final = response.json() if response is not None else ""
+                except (ValueError, AttributeError):
+                    response_final = getattr(response, "text", "") if response is not None else ""
             self.log_request_info(
                 {
                     "POST": {
@@ -403,6 +421,7 @@ class RequestsHelper:
             return
 
         response = None
+        error_message = None
         try:
             response = self._make_request_with_retry("DELETE", url)
 
@@ -417,17 +436,22 @@ class RequestsHelper:
                 response_final = (
                     getattr(response, "text", str(e)) if response is not None else str(e)
                 )
+            error_message = response_final
             log.print_fail(f"Error deleting {url}: {response_final}")
             e.args = (*e.args, response_final)
             raise e
         except Exception as e:
+            error_message = str(e)
             log.print_fail(f"Unexpected error deleting {url}: {e}")
             raise e
         finally:
-            try:
-                response_final = response.json() if response is not None else ""
-            except (ValueError, AttributeError):
-                response_final = getattr(response, "text", "") if response is not None else ""
+            if error_message is not None:
+                response_final = error_message
+            else:
+                try:
+                    response_final = response.json() if response is not None else ""
+                except (ValueError, AttributeError):
+                    response_final = getattr(response, "text", "") if response is not None else ""
             self.log_request_info(
                 {
                     "DELETE": {
