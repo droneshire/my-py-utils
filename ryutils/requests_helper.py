@@ -102,7 +102,157 @@ class RequestsHelper:
                 verbose=self.verbose,
             )
 
-    # pylint: disable=too-many-branches
+    def _calculate_retry_delay(self, attempt: int) -> float:
+        """Calculate exponential backoff delay for retry attempts.
+
+        Args:
+            attempt: The current attempt number (0-indexed)
+
+        Returns:
+            Delay in seconds
+        """
+        return float(self.retry_delay * (2**attempt))
+
+    def _extract_response_data_from_exception(self, e: requests.exceptions.RequestException) -> Any:
+        """Extract response data from an exception if available.
+
+        Args:
+            e: The request exception
+
+        Returns:
+            Response data (JSON dict/list, text string, or None)
+        """
+        if hasattr(e, "response") and e.response is not None:
+            try:
+                return e.response.json()
+            except (ValueError, AttributeError):
+                return getattr(e.response, "text", None)
+        return None
+
+    def _format_dict_response_data(self, response_data: Dict[str, Any]) -> str:
+        """Format dictionary response data, prioritizing errors field.
+
+        Args:
+            response_data: Dictionary response data
+
+        Returns:
+            Formatted string representation
+        """
+        if "errors" in response_data:
+            errors_str = json.dumps(response_data["errors"], indent=2)
+            formatted = f"\nValidation errors:\n{errors_str}"
+            # Also include other fields if present (status, title, etc.)
+            other_fields = {k: v for k, v in response_data.items() if k != "errors"}
+            if other_fields:
+                other_str = json.dumps(other_fields, indent=2)
+                formatted += f"\nOther response fields:\n{other_str}"
+            return formatted
+        # Pretty print the entire response if no errors field
+        formatted = json.dumps(response_data, indent=2)
+        return f"\nResponse data:\n{formatted}"
+
+    def _format_non_dict_response_data(self, response_data: Any) -> str:
+        """Format non-dictionary response data (list, str, or other).
+
+        Args:
+            response_data: Response data that is not a dict
+
+        Returns:
+            Formatted string representation
+        """
+        if isinstance(response_data, list):
+            formatted = json.dumps(response_data, indent=2)
+            return f"\nResponse data:\n{formatted}"
+        if isinstance(response_data, str):
+            # Try to parse as JSON for pretty printing
+            try:
+                parsed = json.loads(response_data)
+                formatted = json.dumps(parsed, indent=2)
+                return f"\nResponse data:\n{formatted}"
+            except (ValueError, TypeError):
+                return f"\nResponse data: {response_data}"
+        return f"\nResponse data: {response_data}"
+
+    def _format_error_message_with_response_data(
+        self, base_error_msg: str, response_data: Any
+    ) -> str:
+        """Format error message with response data for better readability.
+
+        Args:
+            base_error_msg: The base error message
+            response_data: The response data (dict, list, str, or other)
+
+        Returns:
+            Formatted error message string
+        """
+        if response_data is None:
+            return base_error_msg
+
+        if isinstance(response_data, dict):
+            formatted_data = self._format_dict_response_data(response_data)
+        else:
+            formatted_data = self._format_non_dict_response_data(response_data)
+
+        return base_error_msg + formatted_data
+
+    def _log_retry_warning(self, error_type: str, delay: float, attempt: int, e: Exception) -> None:
+        """Log retry warning message.
+
+        Args:
+            error_type: Type of error ("timeout", "connection", or "request")
+            delay: Delay in seconds before retry
+            attempt: Current attempt number (0-indexed)
+            e: The exception that occurred
+        """
+        attempt_str = f"(attempt {attempt + 1}/{self.max_retries + 1})"
+        if error_type == "timeout":
+            log.print_warn(f"Request timed out, retrying in {delay:.1f}s... {attempt_str} {e}")
+        elif error_type == "connection":
+            log.print_warn(f"Connection error, retrying in {delay:.1f}s... {attempt_str} {e}")
+        else:
+            log.print_warn(f"Request failed, retrying in {delay:.1f}s... {attempt_str} {e}")
+
+    def _log_retry_failure(self, error_type: str, error_msg: str) -> None:
+        """Log retry failure message.
+
+        Args:
+            error_type: Type of error ("timeout", "connection", or "request")
+            error_msg: The formatted error message
+        """
+        attempts_str = f"after {self.max_retries + 1} attempts"
+        if error_type == "timeout":
+            log.print_fail(f"Request timed out {attempts_str}")
+        elif error_type == "connection":
+            log.print_fail(f"Connection failed {attempts_str}")
+        else:
+            log.print_fail(f"Request failed {attempts_str}: {error_msg}")
+
+    def _handle_retry_exception(
+        self,
+        e: requests.exceptions.RequestException,
+        attempt: int,
+        error_type: str,
+    ) -> None:
+        """Handle exception during retry attempt.
+
+        Args:
+            e: The exception that occurred
+            attempt: Current attempt number (0-indexed)
+            error_type: Type of error ("timeout", "connection", or "request")
+        """
+        if attempt < self.max_retries:
+            delay = self._calculate_retry_delay(attempt)
+            self._log_retry_warning(error_type, delay, attempt, e)
+            time.sleep(delay)
+        else:
+            # Extract response data if available (e.g., from HTTPError)
+            # Only build full error message after all retries exhausted
+            response_data = self._extract_response_data_from_exception(e)
+            error_msg = str(e)
+            if response_data is not None:
+                error_msg = self._format_error_message_with_response_data(error_msg, response_data)
+            self._log_retry_failure(error_type, error_msg)
+
     def _make_request_with_retry(self, method: str, url: str, **kwargs: Any) -> requests.Response:
         """Make a request with retry logic and better error handling."""
         last_exception: Optional[requests.exceptions.RequestException] = None
@@ -120,54 +270,15 @@ class RequestsHelper:
 
             except requests.exceptions.Timeout as e:
                 last_exception = e
-                if attempt < self.max_retries:
-                    delay = self.retry_delay * (2**attempt)  # Exponential backoff
-                    log.print_warn(
-                        f"Request timed out, retrying in {delay:.1f}s... "
-                        f"(attempt {attempt + 1}/{self.max_retries + 1}) {last_exception}"
-                    )
-                    time.sleep(delay)
-                else:
-                    log.print_fail(f"Request timed out after {self.max_retries + 1} attempts")
+                self._handle_retry_exception(e, attempt, "timeout")
 
             except requests.exceptions.ConnectionError as e:
                 last_exception = e
-                if attempt < self.max_retries:
-                    delay = self.retry_delay * (2**attempt)
-                    log.print_warn(
-                        f"Connection error, retrying in {delay:.1f}s... "
-                        f"(attempt {attempt + 1}/{self.max_retries + 1}) {last_exception}"
-                    )
-                    time.sleep(delay)
-                else:
-                    log.print_fail(f"Connection failed after {self.max_retries + 1} attempts")
+                self._handle_retry_exception(e, attempt, "connection")
 
             except requests.exceptions.RequestException as e:
                 last_exception = e
-
-                if attempt < self.max_retries:
-                    delay = self.retry_delay * (2**attempt)
-                    log.print_warn(
-                        f"Request failed, retrying in {delay:.1f}s... "
-                        f"(attempt {attempt + 1}/{self.max_retries + 1}) {last_exception}"
-                    )
-                    time.sleep(delay)
-                else:
-                    # Extract response data if available (e.g., from HTTPError)
-                    # Only build full error message after all retries exhausted
-                    response_data = None
-                    if hasattr(e, "response") and e.response is not None:
-                        try:
-                            response_data = e.response.json()
-                        except (ValueError, AttributeError):
-                            response_data = getattr(e.response, "text", None)
-
-                    error_msg = str(last_exception)
-                    if response_data is not None:
-                        error_msg += f"\nResponse data: {response_data}"
-                    log.print_fail(
-                        f"Request failed after {self.max_retries + 1} attempts: {error_msg}"
-                    )
+                self._handle_retry_exception(e, attempt, "request")
 
         # If we get here, all retries failed
         if last_exception is not None:
@@ -242,7 +353,7 @@ class RequestsHelper:
             return self._extract_response_data(response)
         return str(e)
 
-    # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-statements
+    # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-statements,too-many-branches
     def _make_request(
         self,
         method: str,
