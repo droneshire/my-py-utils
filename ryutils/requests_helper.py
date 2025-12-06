@@ -331,6 +331,12 @@ class RequestsHelper:
         finally:
             response_final = self._extract_response_data(response)
             if error_message is not None:
+                # Convert response_final to string if it's not already
+                # (could be dict/list from JSON)
+                if isinstance(response_final, (dict, list)):
+                    response_final = json.dumps(response_final)
+                elif not isinstance(response_final, str):
+                    response_final = str(response_final)
                 response_final += f"\nError message: {error_message}"
 
             # Build log data
