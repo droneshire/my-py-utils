@@ -16,13 +16,17 @@ from ryutils.verbose import Verbose
 
 
 # Configure retry strategy for all requests
-def create_retry_strategy() -> Retry:
-    """Create a retry strategy with exponential backoff."""
+def create_retry_strategy(max_retries: int = 0) -> Retry:
+    """Create a retry strategy with exponential backoff.
+
+    Note: Set max_retries=0 to disable urllib3 retries when using manual retry logic.
+    The manual retry logic in _make_request_with_retry handles all retries.
+    """
     return Retry(
-        total=2,  # Total number of retries
-        backoff_factor=1,  # Base delay between retries (1, 2 seconds)
+        total=max_retries,  # Total number of retries (0 = disabled, handled manually)
+        backoff_factor=1,  # Base delay between retries
         status_forcelist=[408, 429, 500, 502, 503, 504],  # Retry on these status codes
-        allowed_methods=["GET", "POST", "PUT", "DELETE"],  # Allow retries on all methods
+        allowed_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],  # Allow retries on all methods
         respect_retry_after_header=True,  # Respect Retry-After headers
     )
 
@@ -78,8 +82,8 @@ class RequestsHelper:
         if self.verbose.requests:
             log.print_bright(f"Initialized RequestsHelper for {self.base_url}")
 
-        # Configure retry strategy
-        retry_strategy = create_retry_strategy()
+        # Configure retry strategy - disable urllib3 retries since we handle retries manually
+        retry_strategy = create_retry_strategy(max_retries=0)
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
@@ -208,72 +212,161 @@ class RequestsHelper:
             with open(self.log_file, "w", encoding="utf-8") as f:
                 json.dump(log_data, f, indent=2)
 
-    # pylint: disable=too-many-branches
-    def get(self, path: str, params: dict | None = None) -> Any:
+    def _extract_response_data(self, response: Optional[requests.Response]) -> Any:
+        """Extract JSON or text from response.
+
+        Args:
+            response: The requests Response object, or None
+
+        Returns:
+            Parsed JSON if available, otherwise response text, or empty string if None
+        """
+        if response is None:
+            return ""
+        try:
+            return response.json()
+        except (ValueError, AttributeError):
+            return getattr(response, "text", "")
+
+    def _extract_error_message(self, e: Exception, response: Optional[requests.Response]) -> Any:
+        """Extract error message from exception and response.
+
+        Args:
+            e: The exception that occurred
+            response: The requests Response object if available, or None
+
+        Returns:
+            Error message (string, dict, or list), preferring response data if available
+        """
+        if isinstance(e, requests.HTTPError) and response is not None:
+            return self._extract_response_data(response)
+        return str(e)
+
+    # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-statements
+    def _make_request(
+        self,
+        method: str,
+        path: str,
+        json_dict: Optional[Union[Dict[str, Any], List[Any]]] = None,
+        params: Optional[dict] = None,
+        cache_clear_path: Optional[str] = None,
+        should_cache: bool = False,
+        enabled_check: bool = True,
+        enabled_flag: bool = True,
+    ) -> Any:
+        """Generic request handler for all HTTP methods.
+
+        Args:
+            method: HTTP method (GET, POST, PUT, DELETE)
+            path: URL path
+            json_dict: JSON body for POST/PUT requests
+            params: URL parameters
+            cache_clear_path: Path to clear from cache (for PUT/POST/DELETE)
+            should_cache: Whether to cache the response (for GET)
+            enabled_check: Whether to check enabled flags
+            enabled_flag: The enabled flag value (receive_enabled or send_enabled)
+
+        Returns:
+            Response data or error message
+        """
         url = f"{self.base_url}{path}"
+
+        # Verbose logging
         if self.verbose.requests_url:
-            log.print_bright(f"GET {url}")
-
+            log.print_bright(f"{method} {url}")
         if self.verbose.requests:
-            log.print_bright(f"GET {url} with params: {params}")
+            log_msg = f"{method} {url}"
+            if json_dict is not None:
+                log_msg += f" with json: {json_dict}"
+            if params is not None:
+                log_msg += f" and params: {params}"
+            log.print_bright(log_msg)
 
-        if not self.receive_enabled:
-            log.print_bright(f"Receive disabled: GET {url}")
-            return {}
+        # Check if method is enabled
+        if enabled_check and not enabled_flag:
+            action = "Receive" if method in ("GET", "DELETE") else "Send"
+            log.print_bright(f"{action} disabled: {method} {url}")
+            return {} if method != "DELETE" else None
 
-        # Caching logic
-        if self.cache is not None:
-            cache_data = self.cache.get("GET", path, params)
+        # Cache check (for GET requests)
+        if should_cache and self.cache is not None:
+            cache_data = self.cache.get(method, path, params)
             if cache_data is not None:
                 if self.verbose.requests:
-                    log.print_bright(f"Cache hit for GET {path}")
+                    log.print_bright(f"Cache hit for {method} {path}")
                 return cache_data
 
+        # Make the request
         response = None
         error_message = None
         try:
-            response = self._make_request_with_retry("GET", url, params=params)
+            kwargs: Dict[str, Any] = {}
+            if params is not None:
+                kwargs["params"] = params
+            if json_dict is not None:
+                kwargs["json"] = json_dict
+
+            response = self._make_request_with_retry(method, url, **kwargs)
 
             if self.verbose.requests_response:
                 log.print_bright(f"Response: {response.json()}")
 
         except requests.HTTPError as e:
             # log the API's error payload
-            try:
-                err = response.json() if response is not None else str(e)
-            except (ValueError, AttributeError):
-                err = getattr(response, "text", str(e)) if response is not None else str(e)
-            error_message = err
-            log.print_fail(f"Error getting from {url}: {err}")
-            e.args = (*e.args, err)
+            error_message = self._extract_error_message(e, response)
+            # Format error message to match original style
+            log.print_fail(f"Error {method.lower()}ing to {url}: {error_message}")
+            e.args = (*e.args, error_message)
             raise e
         except Exception as e:
             error_message = str(e)
-            log.print_fail(f"Unexpected error getting from {url}: {e}")
+            # Format error message to match original style
+            if method == "GET":
+                log.print_fail(f"Unexpected error getting from {url}: {e}")
+            elif method == "DELETE":
+                log.print_fail(f"Unexpected error deleting {url}: {e}")
+            else:
+                log.print_fail(f"Unexpected error {method.lower()}ing to {url}: {e}")
             raise e
         finally:
             if error_message is not None:
                 response_final = error_message
             else:
-                try:
-                    response_final = response.json() if response is not None else ""
-                except (ValueError, AttributeError):
-                    response_final = getattr(response, "text", "") if response is not None else ""
-            self.log_request_info(
-                {
-                    "GET": {
-                        "url": url,
-                        "params": params,
-                        "headers": dict(self.session.headers),
-                        "response": response_final,
-                    }
-                }
-            )
+                response_final = self._extract_response_data(response)
 
-        # Store in cache
-        if self.cache is not None:
-            self.cache.set("GET", path, response_final, params)
+            # Build log data
+            log_data: Dict[str, Any] = {
+                "url": url,
+                "headers": dict(self.session.headers),
+                "response": response_final,
+            }
+            if params is not None:
+                log_data["params"] = params
+            if json_dict is not None:
+                log_data["json"] = json_dict
+
+            self.log_request_info({method: log_data})
+
+        # Cache management
+        if should_cache and self.cache is not None and error_message is None:
+            # Store in cache (for GET requests)
+            self.cache.set(method, path, response_final, params)
+        elif not should_cache and self.cache is not None:
+            # Clear cache (for PUT/POST/DELETE)
+            self.cache.clear(endpoint=cache_clear_path or path)
+
         return response_final
+
+    def get(self, path: str, params: dict | None = None) -> Any:
+        """GET request with optional caching."""
+        return self._make_request(
+            method="GET",
+            path=path,
+            params=params,
+            should_cache=True,
+            enabled_check=True,
+            enabled_flag=self.receive_enabled,
+        )
 
     def put(
         self,
@@ -282,66 +375,16 @@ class RequestsHelper:
         params: dict | None = None,
         cache_clear_path: str | None = None,
     ) -> Any:
-        url = f"{self.base_url}{path}"
-        if self.verbose.requests_url:
-            log.print_bright(f"PUT {url}")
-
-        if self.verbose.requests:
-            log.print_bright(f"PUT {url} with json: {json_dict} and params: {params}")
-
-        if not self.send_enabled:
-            log.print_bright(f"Send disabled: PUT {url}")
-            return {}
-
-        response = None
-        error_message = None
-        try:
-            response = self._make_request_with_retry("PUT", url, json=json_dict, params=params)
-
-            if self.verbose.requests_response:
-                log.print_bright(f"Response: {response.json()}")
-
-        except requests.HTTPError as e:
-            # log the API's error payload
-            try:
-                response_final = response.json() if response is not None else str(e)
-            except (ValueError, AttributeError):
-                response_final = (
-                    getattr(response, "text", str(e)) if response is not None else str(e)
-                )
-            error_message = response_final
-            log.print_fail(f"Error putting to {url}: {response_final}")
-            e.args = (*e.args, response_final)
-            raise e
-        except Exception as e:
-            error_message = str(e)
-            log.print_fail(f"Unexpected error putting to {url}: {e}")
-            raise e
-        finally:
-            if error_message is not None:
-                response_final = error_message
-            else:
-                try:
-                    response_final = response.json() if response is not None else ""
-                except (ValueError, AttributeError):
-                    response_final = getattr(response, "text", "") if response is not None else ""
-            self.log_request_info(
-                {
-                    "PUT": {
-                        "url": url,
-                        "json": json_dict,
-                        "params": params,
-                        "headers": dict(self.session.headers),
-                        "response": response_final,
-                    }
-                }
-            )
-
-        # Clear the cache as since we PUT, we likely invalidated it
-        if self.cache is not None:
-            self.cache.clear(endpoint=cache_clear_path or path)
-
-        return response_final
+        """PUT request with cache clearing."""
+        return self._make_request(
+            method="PUT",
+            path=path,
+            json_dict=json_dict,
+            params=params,
+            cache_clear_path=cache_clear_path,
+            enabled_check=True,
+            enabled_flag=self.send_enabled,
+        )
 
     def post(
         self,
@@ -350,118 +393,41 @@ class RequestsHelper:
         params: dict | None = None,
         cache_clear_path: str | None = None,
     ) -> Any:
-        url = f"{self.base_url}{path}"
-        if self.verbose.requests_url:
-            log.print_bright(f"POST {url}")
+        """POST request with cache clearing."""
+        return self._make_request(
+            method="POST",
+            path=path,
+            json_dict=json_dict,
+            params=params,
+            cache_clear_path=cache_clear_path,
+            enabled_check=True,
+            enabled_flag=self.send_enabled,
+        )
 
-        if self.verbose.requests:
-            log.print_bright(f"POST {url} with json: {json_dict} and params: {params}")
-
-        if not self.send_enabled:
-            log.print_bright(f"Send disabled: POST {url}")
-            return {}
-
-        response = None
-        error_message = None
-        try:
-            response = self._make_request_with_retry("POST", url, json=json_dict, params=params)
-
-            if self.verbose.requests_response:
-                log.print_bright(f"Response: {response.json()}")
-
-        except requests.HTTPError as e:
-            # log the API's error payload
-            try:
-                response_final = response.json() if response is not None else str(e)
-            except (ValueError, AttributeError):
-                response_final = (
-                    getattr(response, "text", str(e)) if response is not None else str(e)
-                )
-            error_message = response_final
-            log.print_fail(f"Error posting to {url}: {response_final}")
-            e.args = (*e.args, response_final)
-            raise e
-        except Exception as e:
-            error_message = str(e)
-            log.print_fail(f"Unexpected error posting to {url}: {e}")
-            raise e
-        finally:
-            if error_message is not None:
-                response_final = error_message
-            else:
-                try:
-                    response_final = response.json() if response is not None else ""
-                except (ValueError, AttributeError):
-                    response_final = getattr(response, "text", "") if response is not None else ""
-            self.log_request_info(
-                {
-                    "POST": {
-                        "url": url,
-                        "json": json_dict,
-                        "params": params,
-                        "headers": dict(self.session.headers),
-                        "response": response_final,
-                    }
-                }
-            )
-
-        # Clear the cache as since we POST, we likely invalidated it
-        if self.cache is not None:
-            self.cache.clear(endpoint=cache_clear_path or path)
-        return response_final
+    def patch(
+        self,
+        path: str,
+        json_dict: Union[Dict[str, Any], List[Any], None] = None,
+        params: dict | None = None,
+        cache_clear_path: str | None = None,
+    ) -> Any:
+        """PATCH request with cache clearing."""
+        return self._make_request(
+            method="PATCH",
+            path=path,
+            json_dict=json_dict,
+            params=params,
+            cache_clear_path=cache_clear_path,
+            enabled_check=True,
+            enabled_flag=self.send_enabled,
+        )
 
     def delete(self, path: str, cache_clear_path: str | None = None) -> None:
-        url = f"{self.base_url}{path}"
-
-        if self.verbose.requests_url or self.verbose.requests:
-            log.print_bright(f"DELETE {url}")
-
-        if not self.receive_enabled:
-            log.print_bright(f"Receive disabled: DELETE {url}")
-            return
-
-        response = None
-        error_message = None
-        try:
-            response = self._make_request_with_retry("DELETE", url)
-
-            if self.verbose.requests_response:
-                log.print_bright(f"Response: {response.json()}")
-
-        except requests.HTTPError as e:
-            # log the API's error payload
-            try:
-                response_final = response.json() if response is not None else str(e)
-            except (ValueError, AttributeError):
-                response_final = (
-                    getattr(response, "text", str(e)) if response is not None else str(e)
-                )
-            error_message = response_final
-            log.print_fail(f"Error deleting {url}: {response_final}")
-            e.args = (*e.args, response_final)
-            raise e
-        except Exception as e:
-            error_message = str(e)
-            log.print_fail(f"Unexpected error deleting {url}: {e}")
-            raise e
-        finally:
-            if error_message is not None:
-                response_final = error_message
-            else:
-                try:
-                    response_final = response.json() if response is not None else ""
-                except (ValueError, AttributeError):
-                    response_final = getattr(response, "text", "") if response is not None else ""
-            self.log_request_info(
-                {
-                    "DELETE": {
-                        "url": url,
-                        "headers": dict(self.session.headers),
-                        "response": response_final,
-                    }
-                }
-            )
-
-        # Clear the cache as since we DELETE, we likely invalidated it
-        if self.cache is not None:
-            self.cache.clear(endpoint=cache_clear_path or path)
+        """DELETE request with cache clearing."""
+        self._make_request(
+            method="DELETE",
+            path=path,
+            cache_clear_path=cache_clear_path,
+            enabled_check=True,
+            enabled_flag=self.receive_enabled,
+        )
