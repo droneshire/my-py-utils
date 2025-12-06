@@ -329,10 +329,9 @@ class RequestsHelper:
                 log.print_fail(f"Unexpected error {method.lower()}ing to {url}: {e}")
             raise e
         finally:
+            response_final = self._extract_response_data(response)
             if error_message is not None:
-                response_final = error_message
-            else:
-                response_final = self._extract_response_data(response)
+                response_final += f"\nError message: {error_message}"
 
             # Build log data
             log_data: Dict[str, Any] = {
