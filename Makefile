@@ -46,6 +46,13 @@ check_format:
 mypy:
 	$(RUN_PY) mypy $(shell $(PY_FIND_COMMAND)) --config-file $(MYPY_CONFIG) --no-namespace-packages
 
+ty:
+	@if command -v ty >/dev/null 2>&1; then \
+		ty check --exit-zero $(shell $(PY_FIND_COMMAND)); \
+	else \
+		echo "ty is not installed; skipping ty check"; \
+	fi
+
 pylint:
 	$(RUN_PY) pylint $(shell $(PY_FIND_COMMAND))
 
@@ -55,7 +62,7 @@ autopep8:
 isort:
 	isort $(shell $(PY_FIND_COMMAND))
 
-lint: check_format mypy pylint
+lint: check_format ty pylint
 
 test:
 	$(RUN_PY) unittest discover -s test -p *_test.py -v
@@ -95,4 +102,4 @@ clean:
 	rm -rf .mypy_cache
 	rm -rf .coverage
 
-.PHONY: init install install_dev format check_format mypy pylint autopep8 isort lint test upgrade release clean
+.PHONY: init install install_dev format check_format mypy ty pylint autopep8 isort lint test upgrade release clean
