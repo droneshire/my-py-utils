@@ -15,3 +15,16 @@ extend-exclude = '''
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
+
+# ty type checker (used by lint/lint_full). Mypy config kept in src/mypy_config.ini for mypy target.
+[tool.ty.environment]
+python-version = "3.12"
+extra-paths = ["src", "build", "data_types", "database"]
+
+[tool.ty.src]
+exclude = ["**/*_pb2.py"]
+
+[tool.ty.analysis]
+allowed-unresolved-imports = [
+]
+
