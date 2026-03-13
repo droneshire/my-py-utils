@@ -397,6 +397,18 @@ class RequestsHelper:
         if enabled_check and not enabled_flag:
             action = "Receive" if method in ("GET", "DELETE") else "Send"
             log.print_bright(f"{action} disabled: {method} {url}")
+            # Still write send log when send disabled
+            if self.log_requests and action == "Send":
+                log_data_disabled: Dict[str, Any] = {
+                    "url": url,
+                    "headers": dict(self.session.headers),
+                    "response": "send disabled",
+                }
+                if params is not None:
+                    log_data_disabled["params"] = params
+                if json_dict is not None:
+                    log_data_disabled["json"] = json_dict
+                self.log_request_info({method: log_data_disabled})
             return {} if method != "DELETE" else None
 
         # Cache check (for GET requests)
