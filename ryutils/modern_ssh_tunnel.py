@@ -136,7 +136,7 @@ class ModernSSHTunnel:
 
             # Add DSSKey only if available (for backward compatibility)
             if hasattr(paramiko, "DSSKey"):
-                key_types.append(("DSS", paramiko.DSSKey))  # type: ignore
+                key_types.append(("DSS", paramiko.DSSKey))
 
             for key_name, key_class in key_types:
                 try:

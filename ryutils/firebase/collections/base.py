@@ -235,7 +235,8 @@ class FirebaseCollection(abc.ABC):
             if "snapshot_handler" in collection_config:
                 handler = collection_config["snapshot_handler"]
                 if callable(handler):
-                    handler(collection_snapshot)
+                    typed_handler = T.cast(T.Callable[[T.List[DocumentSnapshot]], None], handler)
+                    typed_handler(collection_snapshot)
                     return
         # Fallback to abstract method for subclasses
         self._handle_collection_snapshot_impl(collection_name, collection_snapshot)

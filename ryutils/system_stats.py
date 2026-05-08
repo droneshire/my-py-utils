@@ -72,7 +72,7 @@ def resource_profiler(
         pass
     """
 
-    def decorator(func: T.Callable) -> T.Callable:
+    def decorator(func: T.Callable[..., T.Any]) -> T.Callable[..., T.Any]:
         @wraps(func)
         def wrapper(*args: T.Any, **kwargs: T.Any) -> T.Any:
             # Record initial stats
@@ -88,7 +88,8 @@ def resource_profiler(
             mem_after = memory_usage()[0]
 
             file_name = get_backtrace_file_name(frame=2)
-            id_string = f"{file_name}:{func.__name__}()"
+            func_name = getattr(func, "__name__", func.__class__.__name__)
+            id_string = f"{file_name}:{func_name}()"
 
             resource_profiler_obj = ResourceProfiler(
                 id_string, start_time, end_time, cpu_before, cpu_after, mem_before, mem_after
