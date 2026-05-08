@@ -77,6 +77,8 @@ class RequestsHelper:
     timeout: int = 30  # Increased default timeout
     max_retries: int = 3
     retry_delay: float = 1.0
+    max_log_chars: int = 10000
+    max_cache_entry_bytes: int = 1_000_000
 
     def __post_init__(self) -> None:
         if self.verbose.requests:
@@ -301,27 +303,45 @@ class RequestsHelper:
             # Reset fresh_log after deleting so subsequent requests append
             self.fresh_log = False
 
-        if not self.log_file.exists():
-            # Create new log file with initial entry
-            timestamp = datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M:%S")
-            log_data = [{timestamp: json_data}]
-            with open(self.log_file, "w", encoding="utf-8") as f:
-                json.dump(log_data, f, indent=2)
-        else:
-            # Read existing log file
-            with open(self.log_file, "r", encoding="utf-8") as f:
-                try:
-                    log_data = json.load(f)
-                except json.JSONDecodeError:
-                    log_data = []
+        self.log_file.parent.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M:%S")
+        # NDJSON append avoids loading previous log history into memory.
+        with open(self.log_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps({timestamp: json_data}, default=str))
+            f.write("\n")
 
-            # Add new entry
-            timestamp = datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M:%S")
-            log_data.append({timestamp: json_data})
+    def _estimate_payload_size(self, payload: Any) -> int:
+        """Return serialized payload size in bytes."""
+        try:
+            serialized = json.dumps(payload, default=str)
+            return len(serialized.encode("utf-8"))
+        except (TypeError, ValueError):
+            return len(str(payload).encode("utf-8"))
 
-            # Write updated data back
-            with open(self.log_file, "w", encoding="utf-8") as f:
-                json.dump(log_data, f, indent=2)
+    def _truncate_text(self, value: str, max_chars: int) -> str:
+        """Truncate text and include original length metadata."""
+        if len(value) <= max_chars:
+            return value
+        return (
+            f"{value[:max_chars]}\n... [truncated "
+            f"{len(value) - max_chars} chars, original_len={len(value)}]"
+        )
+
+    def _safe_response_preview(self, response: requests.Response) -> str:
+        """Build bounded response preview for verbose logging."""
+        try:
+            preview = json.dumps(response.json(), default=str)
+        except (ValueError, AttributeError):
+            preview = getattr(response, "text", "")
+        return self._truncate_text(preview, self.max_log_chars)
+
+    def _prepare_log_response(self, response_data: Any) -> Any:
+        """Prepare response data for logging with bounded size."""
+        if isinstance(response_data, str):
+            return self._truncate_text(response_data, self.max_log_chars)
+        preview = json.dumps(response_data, default=str)
+        bounded_preview = self._truncate_text(preview, self.max_log_chars)
+        return bounded_preview
 
     def _extract_response_data(self, response: Optional[requests.Response]) -> Any:
         """Extract JSON or text from response.
@@ -432,7 +452,7 @@ class RequestsHelper:
             response = self._make_request_with_retry(method, url, **kwargs)
 
             if self.verbose.requests_response:
-                log.print_bright(f"Response: {response.json()}")
+                log.print_bright(f"Response: {self._safe_response_preview(response)}")
 
         except requests.HTTPError as e:
             # log the API's error payload
@@ -463,10 +483,11 @@ class RequestsHelper:
                 response_final += f"\nError message: {error_message}"
 
             # Build log data
+            response_log = self._prepare_log_response(response_final)
             log_data: Dict[str, Any] = {
                 "url": url,
                 "headers": dict(self.session.headers),
-                "response": response_final,
+                "response": response_log,
             }
             if params is not None:
                 log_data["params"] = params
@@ -478,7 +499,14 @@ class RequestsHelper:
         # Cache management
         if should_cache and self.cache is not None and error_message is None:
             # Store in cache (for GET requests)
-            self.cache.set(method, path, response_final, params)
+            response_size = self._estimate_payload_size(response_final)
+            if response_size <= self.max_cache_entry_bytes:
+                self.cache.set(method, path, response_final, params)
+            else:
+                log.print_warn(
+                    f"Skipping cache for {method} {path}: response size {response_size} bytes "
+                    f"exceeds max_cache_entry_bytes={self.max_cache_entry_bytes}"
+                )
         elif not should_cache and self.cache is not None:
             # Clear cache (for PUT/POST/DELETE)
             self.cache.clear(endpoint=cache_clear_path or path)
@@ -495,6 +523,28 @@ class RequestsHelper:
             enabled_check=True,
             enabled_flag=self.receive_enabled,
         )
+
+    def get_stream(self, path: str, params: dict | None = None) -> requests.Response:
+        """GET request in streaming mode for large payloads.
+
+        The caller is responsible for consuming the stream and closing the response.
+        """
+        url = f"{self.base_url}{path}"
+        kwargs: Dict[str, Any] = {"stream": True}
+        if params is not None:
+            kwargs["params"] = params
+        response = self._make_request_with_retry("GET", url, **kwargs)
+        self.log_request_info(
+            {
+                "GET_STREAM": {
+                    "url": url,
+                    "headers": dict(self.session.headers),
+                    "response": "streaming response (body not buffered by helper)",
+                    "params": params,
+                }
+            }
+        )
+        return response
 
     def put(
         self,

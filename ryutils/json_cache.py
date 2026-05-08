@@ -25,6 +25,7 @@ class JsonCache:
         self,
         cache_file: Path,
         expiry_seconds: int = 3600,  # 1 hour default
+        max_entries: int = 1000,
         verbose: Verbose = Verbose(),
     ) -> None:
         """
@@ -33,10 +34,12 @@ class JsonCache:
         Args:
             cache_file: Path to the JSON cache file
             expiry_seconds: Cache expiry time in seconds
+            max_entries: Maximum number of in-memory cache entries
             verbose: Verbose logging configuration
         """
         self.cache_file = cache_file
         self.expiry_seconds = expiry_seconds
+        self.max_entries = max_entries
         self.verbose = verbose
         self._cache_data: Dict[str, Dict[str, Any]] = {}
         self._lock = threading.RLock()  # Reentrant lock for thread safety
@@ -95,6 +98,29 @@ class JsonCache:
 
         if expired_keys and self.verbose.request_cache:
             log.print_normal(f"Cleaned {len(expired_keys)} expired cache entries")
+
+    def _evict_if_needed(self) -> None:
+        """Evict oldest entries when cache exceeds max_entries."""
+        if self.max_entries <= 0:
+            self._cache_data = {}
+            return
+
+        if len(self._cache_data) <= self.max_entries:
+            return
+
+        items_by_age = sorted(
+            self._cache_data.items(), key=lambda item: item[1].get("timestamp", 0)
+        )
+        over_by = len(self._cache_data) - self.max_entries
+        keys_to_remove = [key for key, _ in items_by_age[:over_by]]
+        for key in keys_to_remove:
+            del self._cache_data[key]
+
+        if keys_to_remove and self.verbose.request_cache:
+            log.print_normal(
+                f"Evicted {len(keys_to_remove)} oldest cache entries to stay under "
+                f"max_entries={self.max_entries}"
+            )
 
     def _generate_key(
         self, method: str, endpoint: str, params: Optional[Dict[str, Any]] = None
@@ -170,6 +196,7 @@ class JsonCache:
             params: Query parameters or request body
         """
         with self._lock:
+            self._clean_expired_entries()
             key = self._generate_key(method, endpoint, params)
 
             self._cache_data[key] = {
@@ -183,6 +210,7 @@ class JsonCache:
             if self.verbose.request_cache:
                 log.print_normal(f"Cached {method} {endpoint}")
 
+            self._evict_if_needed()
             self._save_cache()
 
     # pylint: disable=too-many-branches
@@ -248,5 +276,6 @@ class JsonCache:
                 "active_entries": active_entries,
                 "expired_entries": expired_entries,
                 "expiry_seconds": self.expiry_seconds,
+                "max_entries": self.max_entries,
                 "cache_file": str(self.cache_file),
             }

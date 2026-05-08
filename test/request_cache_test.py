@@ -286,7 +286,27 @@ class JsonCacheTest(unittest.TestCase):
         self.assertEqual(stats["active_entries"], 2)
         self.assertEqual(stats["expired_entries"], 0)
         self.assertEqual(stats["expiry_seconds"], 1)
+        self.assertEqual(stats["max_entries"], 1000)
         self.assertEqual(stats["cache_file"], str(self.cache_file))
+
+    def test_cache_max_entries_evicts_oldest(self) -> None:
+        """Test that cache evicts oldest entries when max_entries is exceeded."""
+        bounded_cache = JsonCache(
+            cache_file=self.cache_file,
+            expiry_seconds=60,
+            max_entries=2,
+            verbose=self.verbose,
+        )
+
+        bounded_cache.set("GET", "/one", {"data": "1"})
+        time.sleep(0.01)
+        bounded_cache.set("GET", "/two", {"data": "2"})
+        time.sleep(0.01)
+        bounded_cache.set("GET", "/three", {"data": "3"})
+
+        self.assertIsNone(bounded_cache.get("GET", "/one"))
+        self.assertEqual(bounded_cache.get("GET", "/two"), {"data": "2"})
+        self.assertEqual(bounded_cache.get("GET", "/three"), {"data": "3"})
 
 
 class RequestsHelperCacheTest(unittest.TestCase):
@@ -645,9 +665,10 @@ class RequestsHelperLoggingTest(unittest.TestCase):
         overwrite the log file instead of appending.
         """
         # Create a pre-existing log file to verify it gets deleted
-        existing_data = [{"2024-01-01 00:00:00": {"OLD": "data"}}]
+        existing_data = {"2024-01-01 00:00:00": {"OLD": "data"}}
         with open(self.log_file, "w", encoding="utf-8") as f:
-            json.dump(existing_data, f, indent=2)
+            f.write(json.dumps(existing_data))
+            f.write("\n")
 
         # Create RequestsHelper with fresh_log=True and log_requests=True
         requests_helper = RequestsHelper(
@@ -681,7 +702,7 @@ class RequestsHelperLoggingTest(unittest.TestCase):
 
         # Verify all three requests are in the log file
         with open(self.log_file, "r", encoding="utf-8") as f:
-            log_data = json.load(f)
+            log_data = [json.loads(line) for line in f if line.strip()]
 
         # Should have 3 entries (one for each request)
         self.assertEqual(len(log_data), 3, "Log file should contain 3 entries after 3 requests")
@@ -732,9 +753,35 @@ class RequestsHelperLoggingTest(unittest.TestCase):
 
         # Verify both requests are in the log
         with open(self.log_file, "r", encoding="utf-8") as f:
-            log_data = json.load(f)
+            log_data = [json.loads(line) for line in f if line.strip()]
 
         self.assertEqual(len(log_data), 2, "Log file should contain 2 entries after 2 requests")
+
+    @patch.object(RequestsHelper, "_make_request_with_retry")
+    def test_large_response_not_cached(self, mock_request: Mock) -> None:
+        """Test that oversized responses are skipped from cache."""
+        cache_file = Path(self.temp_dir) / "test_large_cache.json"
+        requests_helper = RequestsHelper(
+            log_file=self.log_file,
+            verbose=self.verbose,
+            base_url="https://api.example.com",
+            cache_expiry_seconds=60,
+            cache_file=cache_file,
+            max_cache_entry_bytes=50,
+        )
+        self.addCleanup(lambda: cache_file.unlink() if cache_file.exists() else None)
+
+        mock_response = Mock()
+        mock_response.json.return_value = {"payload": "x" * 200}
+        mock_response.raise_for_status.return_value = None
+        mock_request.return_value = mock_response
+
+        result = requests_helper.get("/large")
+        self.assertEqual(result, {"payload": "x" * 200})
+        self.assertEqual(mock_request.call_count, 1)
+
+        assert requests_helper.cache is not None
+        self.assertIsNone(requests_helper.cache.get("GET", "/large"))
 
 
 if __name__ == "__main__":
