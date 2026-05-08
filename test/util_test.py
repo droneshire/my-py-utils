@@ -1,9 +1,14 @@
 import typing as T
 import unittest
 
-from ryutils.dict_util import (check_dict_keys_recursive, find_in_nested_dict,
-                               flatten_dict, get_typeddict_keys,
-                               patch_missing_keys_recursive, safe_get)
+from ryutils.dict_util import (
+    check_dict_keys_recursive,
+    find_in_nested_dict,
+    flatten_dict,
+    get_typeddict_keys,
+    patch_missing_keys_recursive,
+    safe_get,
+)
 
 
 class NestedTypedDict(T.TypedDict):

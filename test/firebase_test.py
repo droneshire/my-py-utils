@@ -13,12 +13,9 @@ from unittest.mock import Mock, patch
 from google.cloud.firestore_v1.base_document import DocumentSnapshot
 from google.cloud.firestore_v1.collection import CollectionReference
 
-from ryutils.firebase.collections import (CollectionConfig,
-                                          CollectionConfigDict,
-                                          FirebaseCollection)
+from ryutils.firebase.collections import CollectionConfig, CollectionConfigDict, FirebaseCollection
 from ryutils.firebase.collections.base import Changes
-from ryutils.firebase.firebase_manager import \
-    CollectionConfig as ManagerCollectionConfig
+from ryutils.firebase.firebase_manager import CollectionConfig as ManagerCollectionConfig
 from ryutils.firebase.firebase_manager import FirebaseManager
 from ryutils.verbose import Verbose
 

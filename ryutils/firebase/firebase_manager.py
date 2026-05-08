@@ -2,8 +2,7 @@ import time
 import typing as T
 
 import deepdiff
-from google.protobuf.message import \
-    Message  # pylint: disable=no-name-in-module
+from google.protobuf.message import Message  # pylint: disable=no-name-in-module
 
 from ryutils.firebase.collections.base import FirebaseCollection
 from ryutils.verbose import Verbose
