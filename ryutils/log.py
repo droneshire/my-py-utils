@@ -196,12 +196,13 @@ def make_formatter_printer(
     logger = logging.getLogger(__name__)
 
     def formatter(message: T.Any, *args: T.Any, **kwargs: T.Any) -> str:
-        message = str(message)
+        message_text: str = str(message)
+        formatted_text: str
 
         if args or kwargs:
-            formatted_text = message.format(*args, **kwargs)
+            formatted_text = message_text.format(*args, **kwargs)
         else:
-            formatted_text = message
+            formatted_text = message_text
 
         if prefix and sys.platform.lower() == "linux":
             formatted_text = prefix + "\t" + formatted_text
