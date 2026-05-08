@@ -16,10 +16,10 @@ extend-exclude = '''
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
-# ty type checker (used by lint/lint_full). Mypy config kept in src/mypy_config.ini for mypy target.
+# ty type checker (used by lint). Mypy config lives at repository root.
 [tool.ty.environment]
 python-version = "3.12"
-extra-paths = ["src", "build", "data_types", "database"]
+extra-paths = [".", "ryutils", "test"]
 
 [tool.ty.src]
 exclude = ["**/*_pb2.py"]

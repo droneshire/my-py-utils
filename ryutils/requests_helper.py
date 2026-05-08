@@ -61,6 +61,7 @@ def add_request_helper_args(parser: argparse.ArgumentParser) -> None:
     )
 
 
+# pylint: disable=too-many-instance-attributes
 @dataclass
 class RequestsHelper:
     verbose: Verbose

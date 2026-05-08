@@ -216,11 +216,9 @@ def make_formatter_printer(
             return str(color + formatted_text + Colors.ENDC.value)
 
         if sys.stdout.encoding is not None:
-            return T.cast(
-                str, formatted_text.encode("utf-8").decode(sys.stdout.encoding, errors="ignore")
-            )
+            return formatted_text.encode("utf-8").decode(sys.stdout.encoding, errors="ignore")
 
-        return T.cast(str, formatted_text)
+        return formatted_text
 
     def printer(message: T.Any, *args: T.Any, **kwargs: T.Any) -> None:
         is_logger_in_use = logging.getLogger().hasHandlers()

@@ -12,6 +12,7 @@ from unittest.mock import Mock, patch
 
 from google.cloud.firestore_v1.base_document import DocumentSnapshot
 from google.cloud.firestore_v1.collection import CollectionReference
+from google.protobuf.message import Message
 
 from ryutils.firebase.collections import CollectionConfig, CollectionConfigDict, FirebaseCollection
 from ryutils.firebase.collections.base import Changes
@@ -51,7 +52,7 @@ class MockFirebaseCollection(FirebaseCollection):
         """Return mock collection references."""
         mock_ref = Mock(spec=CollectionReference)
         mock_ref.on_snapshot = Mock(return_value=None)
-        return {"test_collection": mock_ref}  # type: ignore[return-value]
+        return {"test_collection": mock_ref}
 
     def _initialize_caches_impl(self) -> dict[str, dict[str, dict]]:
         """Initialize empty caches."""
@@ -323,8 +324,8 @@ class TestFirebaseManager(unittest.TestCase):
         config = ManagerCollectionConfig(
             collection=collection,
             get_cache_func=get_cache,
-            message_pb_type=ConfigMessagePb,
-            convert_func=convert_func,
+            message_pb_type=T.cast(type[Message], ConfigMessagePb),
+            convert_func=T.cast(T.Callable[[T.Any], Message], convert_func),
             channel=channels.CONFIG_CHANNEL,
         )
 
@@ -376,8 +377,8 @@ class TestFirebaseManager(unittest.TestCase):
         config = ManagerCollectionConfig(
             collection=collection,
             get_cache_func=get_cache,
-            message_pb_type=ConfigMessagePb,
-            convert_func=convert_func,
+            message_pb_type=T.cast(type[Message], ConfigMessagePb),
+            convert_func=T.cast(T.Callable[[T.Any], Message], convert_func),
             channel=channels.CONFIG_CHANNEL,
         )
 
@@ -424,8 +425,8 @@ class TestFirebaseManager(unittest.TestCase):
         config = ManagerCollectionConfig(
             collection=collection,
             get_cache_func=get_cache,
-            message_pb_type=ConfigMessagePb,
-            convert_func=convert_func,
+            message_pb_type=T.cast(type[Message], ConfigMessagePb),
+            convert_func=T.cast(T.Callable[[T.Any], Message], convert_func),
             channel=channels.CONFIG_CHANNEL,
         )
 
